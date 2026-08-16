@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>💰 CASH X – Invest & Earn Daily | Uganda's Trusted Platform</title>
-<meta name="description" content="CASH X is Uganda's leading investment platform. Earn daily profits with as low as UGX 15,000. Trusted by thousands." />
-<meta name="keywords" content="CASH X, investment, Uganda, daily earnings, invest online" />
+<meta name="description" content="CASH X is Uganda's leading investment platform. Earn daily profits with as low as UGX 15,000." />
+<meta name="keywords" content="CASH X, investment, Uganda, daily earnings" />
 <meta property="og:title" content="CASH X – Invest & Earn Daily" />
-<meta property="og:description" content="Uganda's most trusted investment platform. Start with UGX 15,000 and earn daily profits." />
+<meta property="og:description" content="Uganda's most trusted investment platform." />
 <meta property="og:type" content="website" />
 <meta name="robots" content="index, follow" />
 <style>
@@ -107,7 +107,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,#2ecc71,#e74c3c);border-radius:10px}
 @media(max-width:480px){.product-row{flex-direction:column;align-items:stretch}.product-row .actions{justify-content:stretch}.product-row .actions .btn{flex:1}.header{padding:12px 14px}.logo{font-size:20px}.btn{padding:8px 14px;font-size:12px}.bottom-nav{padding:10px 2px 14px}.nav-item{font-size:9px;min-width:38px}.nav-item .icon{font-size:20px}.stats-grid{grid-template-columns:1fr 1fr}}
 @media(min-width:768px){.app{max-width:480px;margin:0 auto;border-left:1px solid rgba(231,76,60,0.1);border-right:1px solid rgba(231,76,60,0.1);min-height:100vh}}
-.whatsapp-float{position:fixed;bottom:90px;right:20px;z-index:150}
+.whatsapp-float{position:fixed;bottom:100px;right:20px;z-index:150}
 .whatsapp-float a{display:flex;align-items:center;justify-content:center;width:56px;height:56px;background:linear-gradient(135deg,#25D366,#128C7E);border-radius:50%;box-shadow:0 4px 20px rgba(37,211,102,0.4);transition:all .3s ease;text-decoration:none;font-size:30px;animation:float 3s ease-in-out infinite}
 .whatsapp-float a:hover{transform:scale(1.1)}
 .rules-list{padding-left:20px;color:#b0c0d0;font-size:14px}
@@ -187,7 +187,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 <div class="app" id="app">
 
 <!-- WELCOME MODAL -->
-<div class="modal-overlay" id="welcomeModal">
+<div class="modal-overlay hidden" id="welcomeModal">
     <div class="modal">
         <button class="close-btn" id="closeModalBtn">&times;</button>
         <h2>💰 Welcome to CASH X</h2>
@@ -203,6 +203,11 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         </ul>
         <button class="btn btn-primary btn-block" id="acceptModalBtn">Start Investing Now</button>
     </div>
+</div>
+
+<!-- WHATSAPP FLOAT - Appears on ALL pages -->
+<div class="whatsapp-float">
+    <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
 </div>
 
 <!-- PAGE: HOME -->
@@ -244,9 +249,6 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <div style="color:#f39c12;font-weight:700;" id="homeProfit">UGX 0</div>
             <div style="color:#8e9fb1;font-size:11px;">Total Profit</div>
         </div>
-    </div>
-    <div class="whatsapp-float">
-        <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
     </div>
 </div>
 
@@ -387,7 +389,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <div id="myItemsList"><div class="text-muted">You haven't purchased any products yet</div></div>
 </div>
 
-<!-- PAGE: MESSAGES -->
+<!-- PAGE: MESSAGES (CLIENT SUPPORT) -->
 <div id="page-client-messages" class="page">
     <div class="header">
         <div class="logo" style="font-size:22px;">💬 Support</div>
@@ -690,7 +692,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 
 <script>
 (function() {
-const STORAGE_KEY = 'cashx_v7_data';
+const STORAGE_KEY = 'cashx_v8_data';
 let ACTIVE_USERS_START = 673;
 
 const PRODUCTS = [
@@ -771,20 +773,27 @@ function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d || dat
 
 function generateId() { return (data.nextId++).toString(); }
 
-function getClient(phone) { return data.clients.find(c => c.phone === phone); }
+function getClient(phone) { return data.clients.find(function(c) { return c.phone === phone; }); }
 
 function updateClient(phone, updates) {
-const idx = data.clients.findIndex(c => c.phone === phone);
-if (idx !== -1) { data.clients[idx] = { ...data.clients[idx], ...updates }; saveData(data); return true; }
+for (var i = 0; i < data.clients.length; i++) {
+if (data.clients[i].phone === phone) {
+data.clients[i] = Object.assign({}, data.clients[i], updates);
+saveData(data);
+return true;
+}
+}
 return false;
 }
 
 function addClient(phone, password, name, ref) {
 if (getClient(phone)) return false;
-const refCode = 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
-const client = {
+var refCode = 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
+var client = {
 id: generateId(),
-phone, password, name: name || phone,
+phone: phone,
+password: password,
+name: name || phone,
 refCode: refCode,
 referredBy: ref || '',
 balance: 4000,
@@ -805,11 +814,13 @@ createdAt: new Date().toISOString()
 };
 
 if (ref) {
-const referrer = data.clients.find(c => c.refCode === ref);
-if (referrer) {
-if (!referrer.referrals) referrer.referrals = [];
-referrer.referrals.push(phone);
-updateClient(referrer.phone, { referrals: referrer.referrals });
+for (var i = 0; i < data.clients.length; i++) {
+if (data.clients[i].refCode === ref) {
+if (!data.clients[i].referrals) data.clients[i].referrals = [];
+data.clients[i].referrals.push(phone);
+updateClient(data.clients[i].phone, { referrals: data.clients[i].referrals });
+break;
+}
 }
 }
 
@@ -821,9 +832,9 @@ return true;
 
 function showToast(msg, type) {
 type = type || 'info';
-const old = document.querySelector('.toast');
+var old = document.querySelector('.toast');
 if (old) old.remove();
-const toast = document.createElement('div');
+var toast = document.createElement('div');
 toast.className = 'toast ' + type;
 toast.textContent = msg;
 document.body.appendChild(toast);
@@ -838,7 +849,7 @@ if (totalInvested >= 200000) return 'VIP 2';
 return 'VIP 1';
 }
 
-// Navigation
+// ===== NAVIGATION =====
 var pages = {
 home: document.getElementById('page-home'),
 'client-login': document.getElementById('page-client-login'),
@@ -916,7 +927,7 @@ var hash = window.location.hash.replace('#', '');
 if (hash && pages[hash]) navigate(hash);
 });
 
-// Auth
+// ===== AUTH =====
 document.getElementById('clientRegisterForm').addEventListener('submit', function(e) {
 e.preventDefault();
 var name = document.getElementById('clientRegName').value.trim();
@@ -1001,21 +1012,30 @@ navigate('home');
 showToast('Admin logged out.', 'info');
 });
 
-// Welcome Modal
-var modalShown = localStorage.getItem('cashx_welcome_shown');
+// ===== WELCOME MODAL =====
+var modalShown = localStorage.getItem('cashx_welcome_shown_v8');
 if (!modalShown) {
 document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
 document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown', 'true');
+localStorage.setItem('cashx_welcome_shown_v8', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
 document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown', 'true');
+localStorage.setItem('cashx_welcome_shown_v8', 'true');
 });
 
-// Home stats
+// ===== WHATSAPP =====
+function updateWhatsAppButton() {
+var btn = document.getElementById('whatsappFloatBtn');
+if (data.whatsapp) {
+btn.href = 'https://wa.me/256' + data.whatsapp.replace(/\D/g, '');
+}
+}
+updateWhatsAppButton();
+
+// ===== HOME STATS =====
 function updateHomeStats() {
 var totalClients = data.clients.length;
 var activeUsers = data.activeUsers || ACTIVE_USERS_START;
@@ -1030,7 +1050,7 @@ document.getElementById('homeInvested').textContent = 'UGX ' + totalInv.toLocale
 document.getElementById('homeProfit').textContent = 'UGX ' + totalProf.toLocaleString();
 }
 
-// Daily earnings
+// ===== DAILY EARNINGS =====
 function processDailyEarnings() {
 var now = new Date();
 for (var c = 0; c < data.clients.length; c++) {
@@ -1082,7 +1102,7 @@ lastEarningDate: now.toISOString()
 setInterval(processDailyEarnings, 60 * 60 * 1000);
 setTimeout(processDailyEarnings, 5000);
 
-// Render dashboard
+// ===== RENDER DASHBOARD =====
 function renderDashboard() {
 var client = getClient(currentClient);
 if (!client) return;
@@ -1126,7 +1146,7 @@ activityContainer.innerHTML = html2;
 }
 }
 
-// Render products
+// ===== RENDER PRODUCTS =====
 function renderProducts() {
 var grid = document.getElementById('productGrid');
 var search = document.getElementById('productSearch').value.toLowerCase();
@@ -1217,7 +1237,7 @@ renderProducts();
 });
 }
 
-// Render my items
+// ===== RENDER MY ITEMS =====
 function renderMyItems() {
 var container = document.getElementById('myItemsList');
 var client = getClient(currentClient);
@@ -1237,7 +1257,7 @@ html += '<div class="list-item"><div class="info"><span class="name">' + p.icon 
 container.innerHTML = html;
 }
 
-// Render messages
+// ===== RENDER MESSAGES (CLIENT SUPPORT) =====
 function renderMessages() {
 var container = document.getElementById('messageContainer');
 var client = getClient(currentClient);
@@ -1310,7 +1330,7 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 if (e.key === 'Enter') document.getElementById('sendMessageBtn').click();
 });
 
-// Render referral
+// ===== RENDER REFERRAL =====
 function renderReferral() {
 var client = getClient(currentClient);
 if (!client) return;
@@ -1376,7 +1396,7 @@ showToast('📋 Share this link: ' + link, 'info');
 }
 });
 
-// Render profile
+// ===== RENDER PROFILE =====
 function renderProfile() {
 var client = getClient(currentClient);
 if (!client) return;
@@ -1384,7 +1404,7 @@ var tier = getTier(client.totalInvested || 0);
 document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Member Since</span><span class="value">' + new Date(client.createdAt).toLocaleDateString() + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + client.balance.toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
 }
 
-// Render deposit
+// ===== RENDER DEPOSIT =====
 function renderDeposit() {
 var contacts = data.contacts;
 if (contacts.length === 0) {
@@ -1462,7 +1482,7 @@ showToast('📨 Deposit request sent!', 'success');
 setTimeout(renderDeposit, 500);
 });
 
-// Render withdraw
+// ===== RENDER WITHDRAW =====
 function renderWithdraw() {
 var client = getClient(currentClient);
 if (client) {
@@ -1585,7 +1605,7 @@ showToast('💰 Withdrawal request submitted!', 'success');
 }
 });
 
-// Admin Dashboard
+// ===== ADMIN DASHBOARD =====
 function renderAdminDashboard() {
 document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
@@ -1609,7 +1629,6 @@ renderAdminSupport();
 renderAdminList();
 
 document.getElementById('whatsappNumber').value = data.whatsapp || '0704072227';
-updateWhatsAppButton();
 }
 
 function renderAdminClients() {
@@ -1791,13 +1810,70 @@ updateWhatsAppButton();
 showToast('✅ WhatsApp number saved!', 'success');
 });
 
-function updateWhatsAppButton() {
-var btn = document.getElementById('whatsappFloatBtn');
-if (data.whatsapp) {
-btn.href = 'https://wa.me/256' + data.whatsapp;
+// ===== ADMIN SUPPORT CHAT =====
+function renderAdminSupport() {
+var container = document.getElementById('adminSupportList');
+var clientsWithMessages = [];
+for (var m = 0; m < data.messages.length; m++) {
+if (clientsWithMessages.indexOf(data.messages[m].clientPhone) === -1) {
+clientsWithMessages.push(data.messages[m].clientPhone);
 }
 }
 
+if (clientsWithMessages.length === 0) {
+container.innerHTML = '<div class="text-muted">No support messages yet.</div>';
+return;
+}
+
+var html = '';
+for (var c = 0; c < clientsWithMessages.length; c++) {
+var phone = clientsWithMessages[c];
+var client = getClient(phone);
+var clientMessages = data.messages.filter(function(m) { return m.clientPhone === phone; });
+var lastMsg = clientMessages[clientMessages.length - 1];
+var unread = 0;
+for (var um = 0; um < clientMessages.length; um++) {
+if (clientMessages[um].sender === 'client' && !clientMessages[um].read) unread++;
+}
+html += '<div class="list-item" data-phone="' + phone + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + (unread > 0 ? ' <span class="badge">' + unread + '</span>' : '') + '</span><span class="detail">' + phone + ' · ' + clientMessages.length + ' messages</span><span class="detail">Last: ' + new Date(lastMsg.date).toLocaleString() + '</span><span class="detail">' + lastMsg.text.substring(0, 50) + (lastMsg.text.length > 50 ? '...' : '') + '</span></div><button class="btn btn-sm btn-primary replySupportBtn">Reply</button></div>';
+}
+container.innerHTML = html;
+
+var replyBtns = container.querySelectorAll('.replySupportBtn');
+for (var rb = 0; rb < replyBtns.length; rb++) {
+replyBtns[rb].addEventListener('click', function() {
+var item = this.closest('.list-item');
+var phone = item.dataset.phone;
+document.getElementById('adminReplyClient').value = phone;
+var client = getClient(phone);
+document.getElementById('adminReplyTitle').textContent = 'Replying to ' + (client ? client.name : phone);
+document.getElementById('adminReplyContainer').style.display = 'block';
+document.getElementById('adminReplyContainer').scrollIntoView({ behavior: 'smooth' });
+});
+}
+}
+
+document.getElementById('adminSendReplyBtn').addEventListener('click', function() {
+var phone = document.getElementById('adminReplyClient').value;
+var message = document.getElementById('adminReplyMessage').value.trim();
+if (!message || !phone) return;
+
+data.messages.push({
+clientPhone: phone,
+sender: 'support',
+adminName: currentAdminName || 'Support Team',
+text: message,
+date: new Date().toISOString()
+});
+saveData(data);
+
+document.getElementById('adminReplyMessage').value = '';
+document.getElementById('adminReplyContainer').style.display = 'none';
+renderAdminSupport();
+showToast('✅ Reply sent!', 'success');
+});
+
+// ===== ADMIN DEPOSITS =====
 function renderAdminDeposits() {
 var container = document.getElementById('adminDepositsList');
 var pending = data.deposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -1898,6 +1974,7 @@ break;
 }
 }
 
+// ===== ADMIN WITHDRAWALS =====
 function renderAdminWithdrawals() {
 var container = document.getElementById('adminWithdrawalsList');
 var pending = data.withdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -1974,69 +2051,7 @@ break;
 }
 }
 
-function renderAdminSupport() {
-var container = document.getElementById('adminSupportList');
-var clientsWithMessages = [];
-for (var m = 0; m < data.messages.length; m++) {
-if (clientsWithMessages.indexOf(data.messages[m].clientPhone) === -1) {
-clientsWithMessages.push(data.messages[m].clientPhone);
-}
-}
-
-if (clientsWithMessages.length === 0) {
-container.innerHTML = '<div class="text-muted">No support messages yet.</div>';
-return;
-}
-
-var html = '';
-for (var c = 0; c < clientsWithMessages.length; c++) {
-var phone = clientsWithMessages[c];
-var client = getClient(phone);
-var clientMessages = data.messages.filter(function(m) { return m.clientPhone === phone; });
-var lastMsg = clientMessages[clientMessages.length - 1];
-var unread = 0;
-for (var um = 0; um < clientMessages.length; um++) {
-if (clientMessages[um].sender === 'client' && !clientMessages[um].read) unread++;
-}
-html += '<div class="list-item" data-phone="' + phone + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + (unread > 0 ? ' <span class="badge">' + unread + '</span>' : '') + '</span><span class="detail">' + phone + ' · ' + clientMessages.length + ' messages</span><span class="detail">Last: ' + new Date(lastMsg.date).toLocaleString() + '</span><span class="detail">' + lastMsg.text.substring(0, 50) + (lastMsg.text.length > 50 ? '...' : '') + '</span></div><button class="btn btn-sm btn-primary replySupportBtn">Reply</button></div>';
-}
-container.innerHTML = html;
-
-var replyBtns = container.querySelectorAll('.replySupportBtn');
-for (var rb = 0; rb < replyBtns.length; rb++) {
-replyBtns[rb].addEventListener('click', function() {
-var item = this.closest('.list-item');
-var phone = item.dataset.phone;
-document.getElementById('adminReplyClient').value = phone;
-var client = getClient(phone);
-document.getElementById('adminReplyTitle').textContent = 'Replying to ' + (client ? client.name : phone);
-document.getElementById('adminReplyContainer').style.display = 'block';
-document.getElementById('adminReplyContainer').scrollIntoView({ behavior: 'smooth' });
-});
-}
-}
-
-document.getElementById('adminSendReplyBtn').addEventListener('click', function() {
-var phone = document.getElementById('adminReplyClient').value;
-var message = document.getElementById('adminReplyMessage').value.trim();
-if (!message || !phone) return;
-
-data.messages.push({
-clientPhone: phone,
-sender: 'support',
-adminName: currentAdminName || 'Support Team',
-text: message,
-date: new Date().toISOString()
-});
-saveData(data);
-
-document.getElementById('adminReplyMessage').value = '';
-document.getElementById('adminReplyContainer').style.display = 'none';
-renderAdminSupport();
-showToast('✅ Reply sent!', 'success');
-});
-
-// Admin Management
+// ===== ADMIN MANAGEMENT =====
 function renderAdminList() {
 var container = document.getElementById('adminList');
 var admins = data.admins || [];
@@ -2085,7 +2100,7 @@ renderAdminList();
 showToast('✅ Admin added!', 'success');
 });
 
-// Admin Tabs
+// ===== ADMIN TABS =====
 var adminTabs = document.querySelectorAll('.admin-tab');
 for (var t = 0; t < adminTabs.length; t++) {
 adminTabs[t].addEventListener('click', function() {
@@ -2109,7 +2124,7 @@ if (tabName === 'admins') renderAdminList();
 });
 }
 
-// Check referral in URL
+// ===== CHECK REFERRAL IN URL =====
 function checkReferralOnLoad() {
 var urlParams = new URLSearchParams(window.location.search);
 var ref = urlParams.get('ref');
@@ -2123,11 +2138,11 @@ showToast('🎁 Referral code ' + ref + ' applied! Get 23% bonus on deposit.', '
 }
 }
 
-// Init
+// ===== INIT =====
 window.addEventListener('load', function() {
 checkReferralOnLoad();
 
-var saved = localStorage.getItem('cashx_session');
+var saved = localStorage.getItem('cashx_session_v8');
 if (saved) {
 try {
 var session = JSON.parse(saved);
@@ -2154,7 +2169,7 @@ if (isAdmin) {
 session.admin = true;
 session.adminName = currentAdminName;
 }
-localStorage.setItem('cashx_session', JSON.stringify(session));
+localStorage.setItem('cashx_session_v8', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
@@ -2162,11 +2177,11 @@ navigate = function(pageId) {
 origNavigate(pageId);
 if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 if (pageId === 'home' || pageId === 'client-login' || pageId === 'admin-login') {
-localStorage.removeItem('cashx_session');
+localStorage.removeItem('cashx_session_v8');
 }
 };
 
-console.log('🚀 CASH X v7 Loaded!');
+console.log('🚀 CASH X v8 Loaded!');
 console.log('👤 Super Admin: admin / admin123');
 console.log('📦 Products available: ' + data.products.length);
 console.log('👥 Active Users: ' + (data.activeUsers || ACTIVE_USERS_START));
