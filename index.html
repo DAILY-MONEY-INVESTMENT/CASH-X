@@ -3,13 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>💰 CASH X – Invest & Earn Daily | Uganda's Trusted Platform</title>
-<meta name="description" content="CASH X is Uganda's leading investment platform. Earn daily profits with as low as UGX 15,000." />
-<meta name="keywords" content="CASH X, investment, Uganda, daily earnings" />
-<meta property="og:title" content="CASH X – Invest & Earn Daily" />
-<meta property="og:description" content="Uganda's most trusted investment platform." />
-<meta property="og:type" content="website" />
-<meta name="robots" content="index, follow" />
+<title>💰 CASH X – Invest & Earn Daily</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
 body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
@@ -44,8 +38,6 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 .btn-ghost:hover{background:rgba(255,255,255,0.1)}
 .card{background:linear-gradient(145deg,rgba(26,10,10,0.8),rgba(14,5,5,0.9));border-radius:20px;padding:20px;margin-bottom:16px;border:1px solid rgba(231,76,60,0.15);backdrop-filter:blur(10px);transition:all .3s ease}
 .card:hover{border-color:rgba(46,204,113,0.3);transform:translateY(-2px);box-shadow:0 8px 30px rgba(46,204,113,0.05)}
-.card-glass{background:linear-gradient(145deg,rgba(26,10,10,0.6),rgba(14,5,5,0.8));backdrop-filter:blur(10px);border:1px solid rgba(46,204,113,0.15)}
-.card-gradient{background:linear-gradient(135deg,#1a0a0a,#2d0a0a);border:1px solid rgba(231,76,60,0.2)}
 .info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
 .info-row:last-child{border-bottom:none}
 .info-row .label{color:#8e9fb1;font-size:14px}
@@ -53,11 +45,13 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 .info-row .value.accent{color:#2ecc71}
 .info-row .value.danger{color:#e74c3c}
 .info-row .value.gold{color:#f39c12}
-.form-group{margin-bottom:16px}
+.form-group{margin-bottom:16px;position:relative}
 .form-group label{display:block;font-size:13px;font-weight:500;color:#b0c0d0;margin-bottom:5px}
 .form-group input,.form-group select,.form-group textarea{width:100%;padding:14px 16px;background:rgba(15,5,5,0.8);border:1px solid rgba(231,76,60,0.2);border-radius:14px;color:#fff;font-size:15px;outline:none;transition:all .3s ease}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#2ecc71;box-shadow:0 0 0 3px rgba(46,204,113,0.2)}
 .form-group input::placeholder{color:#5a6a7e}
+.password-toggle{position:absolute;right:16px;top:42px;cursor:pointer;color:#8e9fb1;font-size:20px;background:none;border:none}
+.password-toggle:hover{color:#2ecc71}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin:12px 0}
 .stat-box{background:rgba(26,10,10,0.6);border-radius:14px;padding:12px 8px;text-align:center;border:1px solid rgba(231,76,60,0.1);transition:all .3s ease}
 .stat-box:hover{border-color:rgba(46,204,113,0.3);transform:scale(1.02)}
@@ -205,7 +199,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     </div>
 </div>
 
-<!-- WHATSAPP FLOAT - Appears on ALL pages -->
+<!-- WHATSAPP FLOAT -->
 <div class="whatsapp-float">
     <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
 </div>
@@ -222,7 +216,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     </div>
     <div class="hero-section">
         <h1>💰 Invest & Earn Daily</h1>
-        <p>Uganda's most trusted investment platform since 2024. Start with as low as UGX 15,000 and earn up to 60% profit on your investment.</p>
+        <p>Uganda's most trusted investment platform since 2024. Start with as low as UGX 15,000 and earn up to 60% profit.</p>
         <span class="badge-ug">🇺🇬 Trusted in Uganda</span>
     </div>
     <div class="card">
@@ -273,7 +267,10 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         </div>
         <div class="form-group">
             <label>Password</label>
-            <input type="password" id="clientRegPass" placeholder="Min 4 characters" required minlength="4" />
+            <div style="position:relative;">
+                <input type="password" id="clientRegPass" placeholder="Min 4 characters" required minlength="4" />
+                <button type="button" class="password-toggle" id="toggleRegPass">👁️</button>
+            </div>
         </div>
         <div class="form-group">
             <label>Referral Code</label>
@@ -300,7 +297,10 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         </div>
         <div class="form-group">
             <label>Password</label>
-            <input type="password" id="clientLoginPass" placeholder="••••••••" required />
+            <div style="position:relative;">
+                <input type="password" id="clientLoginPass" placeholder="••••••••" required />
+                <button type="button" class="password-toggle" id="toggleLoginPass">👁️</button>
+            </div>
         </div>
         <button type="submit" class="btn btn-primary btn-block">Log In</button>
     </form>
@@ -389,7 +389,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <div id="myItemsList"><div class="text-muted">You haven't purchased any products yet</div></div>
 </div>
 
-<!-- PAGE: MESSAGES (CLIENT SUPPORT) -->
+<!-- PAGE: MESSAGES -->
 <div id="page-client-messages" class="page">
     <div class="header">
         <div class="logo" style="font-size:22px;">💬 Support</div>
@@ -512,7 +512,6 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <li>Minimum withdrawal is UGX 5,000</li>
             <li>Withdrawal fee is 12% of the amount</li>
             <li>You can only withdraw every 48 hours</li>
-            <li>If money doesn't reach within 1-2 hours, contact admin</li>
             <li>Provide correct mobile money number and account holder name</li>
         </ul>
     </div>
@@ -565,7 +564,10 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         </div>
         <div class="form-group">
             <label>Password</label>
-            <input type="password" id="adminLoginPass" placeholder="••••••••" required />
+            <div style="position:relative;">
+                <input type="password" id="adminLoginPass" placeholder="••••••••" required />
+                <button type="button" class="password-toggle" id="toggleAdminPass">👁️</button>
+            </div>
         </div>
         <button type="submit" class="btn btn-primary btn-block">Log In</button>
     </form>
@@ -692,7 +694,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 
 <script>
 (function() {
-const STORAGE_KEY = 'cashx_v8_data';
+const STORAGE_KEY = 'cashx_v9_data';
 let ACTIVE_USERS_START = 673;
 
 const PRODUCTS = [
@@ -813,6 +815,7 @@ lastEarningDate: null,
 createdAt: new Date().toISOString()
 };
 
+// Handle referral
 if (ref) {
 for (var i = 0; i < data.clients.length; i++) {
 if (data.clients[i].refCode === ref) {
@@ -848,6 +851,25 @@ if (totalInvested >= 500000) return 'VIP 3';
 if (totalInvested >= 200000) return 'VIP 2';
 return 'VIP 1';
 }
+
+// ===== PASSWORD TOGGLE =====
+function setupPasswordToggle(inputId, toggleId) {
+var input = document.getElementById(inputId);
+var toggle = document.getElementById(toggleId);
+if (!input || !toggle) return;
+toggle.addEventListener('click', function() {
+if (input.type === 'password') {
+input.type = 'text';
+this.textContent = '🙈';
+} else {
+input.type = 'password';
+this.textContent = '👁️';
+}
+});
+}
+setupPasswordToggle('clientRegPass', 'toggleRegPass');
+setupPasswordToggle('clientLoginPass', 'toggleLoginPass');
+setupPasswordToggle('adminLoginPass', 'toggleAdminPass');
 
 // ===== NAVIGATION =====
 var pages = {
@@ -1013,17 +1035,17 @@ showToast('Admin logged out.', 'info');
 });
 
 // ===== WELCOME MODAL =====
-var modalShown = localStorage.getItem('cashx_welcome_shown_v8');
+var modalShown = localStorage.getItem('cashx_welcome_shown_v9');
 if (!modalShown) {
 document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
 document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown_v8', 'true');
+localStorage.setItem('cashx_welcome_shown_v9', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
 document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown_v8', 'true');
+localStorage.setItem('cashx_welcome_shown_v9', 'true');
 });
 
 // ===== WHATSAPP =====
@@ -1257,7 +1279,7 @@ html += '<div class="list-item"><div class="info"><span class="name">' + p.icon 
 container.innerHTML = html;
 }
 
-// ===== RENDER MESSAGES (CLIENT SUPPORT) =====
+// ===== RENDER MESSAGES =====
 function renderMessages() {
 var container = document.getElementById('messageContainer');
 var client = getClient(currentClient);
@@ -1642,7 +1664,8 @@ var html = '';
 for (var c = 0; c < clients.length; c++) {
 var client = clients[c];
 var tier = getTier(client.totalInvested || 0);
-html += '<div class="list-item" data-phone="' + client.phone + '"><div class="info"><span class="name">' + client.name + ' <span class="badge-vip" style="font-size:10px;">' + tier + '</span></span><span class="detail">' + client.phone + ' · Balance: UGX ' + (client.balance || 0).toLocaleString() + '</span><span class="detail">Deposited: ' + (client.hasDeposited ? '✅' : '❌') + ' · Invested: ' + (client.hasInvested ? '✅' : '❌') + '</span><span class="detail">Today\'s Earnings: UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span><span class="detail">Ref: ' + (client.refCode || 'N/A') + ' · Referrals: ' + (client.referrals || []).length + '</span></div><div class="actions"><button class="btn btn-sm btn-success adminDepositBtn">+ Deposit</button><button class="btn btn-sm btn-danger adminWithdrawBtn">- Withdraw</button></div></div>';
+var refCount = (client.referrals || []).length;
+html += '<div class="list-item" data-phone="' + client.phone + '"><div class="info"><span class="name">' + client.name + ' <span class="badge-vip" style="font-size:10px;">' + tier + '</span></span><span class="detail">' + client.phone + ' · Balance: UGX ' + (client.balance || 0).toLocaleString() + '</span><span class="detail">Deposited: ' + (client.hasDeposited ? '✅' : '❌') + ' · Invested: ' + (client.hasInvested ? '✅' : '❌') + '</span><span class="detail">Ref Code: ' + client.refCode + ' · Referrals: ' + refCount + '</span><span class="detail">Today\'s Earnings: UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="actions"><button class="btn btn-sm btn-success adminDepositBtn">+ Deposit</button><button class="btn btn-sm btn-danger adminWithdrawBtn">- Withdraw</button></div></div>';
 }
 container.innerHTML = html;
 
@@ -2142,7 +2165,7 @@ showToast('🎁 Referral code ' + ref + ' applied! Get 23% bonus on deposit.', '
 window.addEventListener('load', function() {
 checkReferralOnLoad();
 
-var saved = localStorage.getItem('cashx_session_v8');
+var saved = localStorage.getItem('cashx_session_v9');
 if (saved) {
 try {
 var session = JSON.parse(saved);
@@ -2169,7 +2192,7 @@ if (isAdmin) {
 session.admin = true;
 session.adminName = currentAdminName;
 }
-localStorage.setItem('cashx_session_v8', JSON.stringify(session));
+localStorage.setItem('cashx_session_v9', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
@@ -2177,11 +2200,11 @@ navigate = function(pageId) {
 origNavigate(pageId);
 if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 if (pageId === 'home' || pageId === 'client-login' || pageId === 'admin-login') {
-localStorage.removeItem('cashx_session_v8');
+localStorage.removeItem('cashx_session_v9');
 }
 };
 
-console.log('🚀 CASH X v8 Loaded!');
+console.log('🚀 CASH X v9 Loaded!');
 console.log('👤 Super Admin: admin / admin123');
 console.log('📦 Products available: ' + data.products.length);
 console.log('👥 Active Users: ' + (data.activeUsers || ACTIVE_USERS_START));
