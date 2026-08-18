@@ -511,7 +511,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <li>You can only withdraw 48 hours after your first investment</li>
             <li>Minimum withdrawal is UGX 5,000</li>
             <li>Withdrawal fee is 12% of the amount</li>
-            <li>You can only withdraw every 48 hours</li>
+            <li>You can only withdraw once every 48 hours (2 days) after your last withdrawal</li>
             <li>Provide correct mobile money number and account holder name</li>
         </ul>
     </div>
@@ -694,16 +694,17 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 
 <script>
 (function() {
-const STORAGE_KEY = 'cashx_v9_data';
+const STORAGE_KEY = 'cashx_v10_data';
 let ACTIVE_USERS_START = 673;
 
+// PRODUCTS - Fixed durations: 5000-70000 now 30 days
 const PRODUCTS = [
-{id:'p7',name:'HP Pavilion 15',brand:'HP',price:5000,daily:1000,duration:120,icon:'💻',status:'sold'},
-{id:'p8',name:'Lenovo IdeaPad 3',brand:'Lenovo',price:15000,daily:3000,duration:120,icon:'💻',status:'available'},
-{id:'p1',name:'Dell Inspiron 15',brand:'Dell',price:20000,daily:5000,duration:120,icon:'💻',status:'sold'},
-{id:'p2',name:'Acer Aspire 5',brand:'Acer',price:35000,daily:7000,duration:120,icon:'💻',status:'available'},
-{id:'p3',name:'Asus VivoBook 14',brand:'Asus',price:50000,daily:10000,duration:120,icon:'💻',status:'available'},
-{id:'p4',name:'MSI Modern 14',brand:'MSI',price:70000,daily:14000,duration:120,icon:'💻',status:'available'},
+{id:'p7',name:'HP Pavilion 15',brand:'HP',price:5000,daily:1000,duration:30,icon:'💻',status:'sold'},
+{id:'p8',name:'Lenovo IdeaPad 3',brand:'Lenovo',price:15000,daily:3000,duration:30,icon:'💻',status:'available'},
+{id:'p1',name:'Dell Inspiron 15',brand:'Dell',price:20000,daily:5000,duration:30,icon:'💻',status:'sold'},
+{id:'p2',name:'Acer Aspire 5',brand:'Acer',price:35000,daily:7000,duration:30,icon:'💻',status:'available'},
+{id:'p3',name:'Asus VivoBook 14',brand:'Asus',price:50000,daily:10000,duration:30,icon:'💻',status:'available'},
+{id:'p4',name:'MSI Modern 14',brand:'MSI',price:70000,daily:14000,duration:30,icon:'💻',status:'available'},
 {id:'p5',name:'Apple MacBook Air',brand:'Apple',price:100000,daily:20000,duration:120,icon:'🍎',status:'available'},
 {id:'p6',name:'Huawei MateBook D',brand:'Huawei',price:200000,daily:40000,duration:120,icon:'📱',status:'available'},
 {id:'p9',name:'Lenovo ThinkPad X1',brand:'Lenovo',price:250000,daily:50000,duration:120,icon:'💻',status:'available'},
@@ -852,7 +853,7 @@ if (totalInvested >= 200000) return 'VIP 2';
 return 'VIP 1';
 }
 
-// ===== PASSWORD TOGGLE =====
+// PASSWORD TOGGLE
 function setupPasswordToggle(inputId, toggleId) {
 var input = document.getElementById(inputId);
 var toggle = document.getElementById(toggleId);
@@ -871,7 +872,7 @@ setupPasswordToggle('clientRegPass', 'toggleRegPass');
 setupPasswordToggle('clientLoginPass', 'toggleLoginPass');
 setupPasswordToggle('adminLoginPass', 'toggleAdminPass');
 
-// ===== NAVIGATION =====
+// NAVIGATION
 var pages = {
 home: document.getElementById('page-home'),
 'client-login': document.getElementById('page-client-login'),
@@ -949,7 +950,7 @@ var hash = window.location.hash.replace('#', '');
 if (hash && pages[hash]) navigate(hash);
 });
 
-// ===== AUTH =====
+// AUTH
 document.getElementById('clientRegisterForm').addEventListener('submit', function(e) {
 e.preventDefault();
 var name = document.getElementById('clientRegName').value.trim();
@@ -1034,21 +1035,21 @@ navigate('home');
 showToast('Admin logged out.', 'info');
 });
 
-// ===== WELCOME MODAL =====
-var modalShown = localStorage.getItem('cashx_welcome_shown_v9');
+// WELCOME MODAL
+var modalShown = localStorage.getItem('cashx_welcome_shown_v10');
 if (!modalShown) {
 document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
 document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown_v9', 'true');
+localStorage.setItem('cashx_welcome_shown_v10', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
 document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown_v9', 'true');
+localStorage.setItem('cashx_welcome_shown_v10', 'true');
 });
 
-// ===== WHATSAPP =====
+// WHATSAPP
 function updateWhatsAppButton() {
 var btn = document.getElementById('whatsappFloatBtn');
 if (data.whatsapp) {
@@ -1057,7 +1058,7 @@ btn.href = 'https://wa.me/256' + data.whatsapp.replace(/\D/g, '');
 }
 updateWhatsAppButton();
 
-// ===== HOME STATS =====
+// HOME STATS
 function updateHomeStats() {
 var totalClients = data.clients.length;
 var activeUsers = data.activeUsers || ACTIVE_USERS_START;
@@ -1072,7 +1073,7 @@ document.getElementById('homeInvested').textContent = 'UGX ' + totalInv.toLocale
 document.getElementById('homeProfit').textContent = 'UGX ' + totalProf.toLocaleString();
 }
 
-// ===== DAILY EARNINGS =====
+// DAILY EARNINGS
 function processDailyEarnings() {
 var now = new Date();
 for (var c = 0; c < data.clients.length; c++) {
@@ -1124,7 +1125,7 @@ lastEarningDate: now.toISOString()
 setInterval(processDailyEarnings, 60 * 60 * 1000);
 setTimeout(processDailyEarnings, 5000);
 
-// ===== RENDER DASHBOARD =====
+// RENDER DASHBOARD
 function renderDashboard() {
 var client = getClient(currentClient);
 if (!client) return;
@@ -1168,7 +1169,7 @@ activityContainer.innerHTML = html2;
 }
 }
 
-// ===== RENDER PRODUCTS =====
+// RENDER PRODUCTS
 function renderProducts() {
 var grid = document.getElementById('productGrid');
 var search = document.getElementById('productSearch').value.toLowerCase();
@@ -1259,7 +1260,7 @@ renderProducts();
 });
 }
 
-// ===== RENDER MY ITEMS =====
+// RENDER MY ITEMS
 function renderMyItems() {
 var container = document.getElementById('myItemsList');
 var client = getClient(currentClient);
@@ -1279,7 +1280,7 @@ html += '<div class="list-item"><div class="info"><span class="name">' + p.icon 
 container.innerHTML = html;
 }
 
-// ===== RENDER MESSAGES =====
+// RENDER MESSAGES (CLIENT SUPPORT)
 function renderMessages() {
 var container = document.getElementById('messageContainer');
 var client = getClient(currentClient);
@@ -1352,7 +1353,7 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 if (e.key === 'Enter') document.getElementById('sendMessageBtn').click();
 });
 
-// ===== RENDER REFERRAL =====
+// RENDER REFERRAL
 function renderReferral() {
 var client = getClient(currentClient);
 if (!client) return;
@@ -1418,15 +1419,15 @@ showToast('📋 Share this link: ' + link, 'info');
 }
 });
 
-// ===== RENDER PROFILE =====
+// RENDER PROFILE - Removed Member Since
 function renderProfile() {
 var client = getClient(currentClient);
 if (!client) return;
 var tier = getTier(client.totalInvested || 0);
-document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Member Since</span><span class="value">' + new Date(client.createdAt).toLocaleDateString() + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + client.balance.toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
+document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + client.balance.toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
 }
 
-// ===== RENDER DEPOSIT =====
+// RENDER DEPOSIT
 function renderDeposit() {
 var contacts = data.contacts;
 if (contacts.length === 0) {
@@ -1504,7 +1505,7 @@ showToast('📨 Deposit request sent!', 'success');
 setTimeout(renderDeposit, 500);
 });
 
-// ===== RENDER WITHDRAW =====
+// RENDER WITHDRAW
 function renderWithdraw() {
 var client = getClient(currentClient);
 if (client) {
@@ -1573,12 +1574,13 @@ msg.textContent = 'Insufficient balance! Need UGX ' + totalDeduct.toLocaleString
 return;
 }
 
+// 48-hour cooldown after last withdrawal
 if (client.lastWithdrawal) {
 var last = new Date(client.lastWithdrawal);
 var now2 = new Date();
 var diff = (now2 - last) / (1000 * 60 * 60);
 if (diff < 48) {
-msg.textContent = 'You can only withdraw every 48 hours. ' + Math.ceil(48 - diff) + ' hours remaining.';
+msg.textContent = 'You can only withdraw once every 48 hours (2 days). Please wait ' + Math.ceil(48 - diff) + ' more hours.';
 return;
 }
 }
@@ -1627,7 +1629,7 @@ showToast('💰 Withdrawal request submitted!', 'success');
 }
 });
 
-// ===== ADMIN DASHBOARD =====
+// ADMIN DASHBOARD
 function renderAdminDashboard() {
 document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
@@ -1833,7 +1835,7 @@ updateWhatsAppButton();
 showToast('✅ WhatsApp number saved!', 'success');
 });
 
-// ===== ADMIN SUPPORT CHAT =====
+// ADMIN SUPPORT CHAT
 function renderAdminSupport() {
 var container = document.getElementById('adminSupportList');
 var clientsWithMessages = [];
@@ -1896,7 +1898,7 @@ renderAdminSupport();
 showToast('✅ Reply sent!', 'success');
 });
 
-// ===== ADMIN DEPOSITS =====
+// ADMIN DEPOSITS
 function renderAdminDeposits() {
 var container = document.getElementById('adminDepositsList');
 var pending = data.deposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -1997,7 +1999,7 @@ break;
 }
 }
 
-// ===== ADMIN WITHDRAWALS =====
+// ADMIN WITHDRAWALS
 function renderAdminWithdrawals() {
 var container = document.getElementById('adminWithdrawalsList');
 var pending = data.withdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -2074,7 +2076,7 @@ break;
 }
 }
 
-// ===== ADMIN MANAGEMENT =====
+// ADMIN MANAGEMENT
 function renderAdminList() {
 var container = document.getElementById('adminList');
 var admins = data.admins || [];
@@ -2123,7 +2125,7 @@ renderAdminList();
 showToast('✅ Admin added!', 'success');
 });
 
-// ===== ADMIN TABS =====
+// ADMIN TABS
 var adminTabs = document.querySelectorAll('.admin-tab');
 for (var t = 0; t < adminTabs.length; t++) {
 adminTabs[t].addEventListener('click', function() {
@@ -2147,7 +2149,7 @@ if (tabName === 'admins') renderAdminList();
 });
 }
 
-// ===== CHECK REFERRAL IN URL =====
+// CHECK REFERRAL IN URL
 function checkReferralOnLoad() {
 var urlParams = new URLSearchParams(window.location.search);
 var ref = urlParams.get('ref');
@@ -2161,11 +2163,11 @@ showToast('🎁 Referral code ' + ref + ' applied! Get 23% bonus on deposit.', '
 }
 }
 
-// ===== INIT =====
+// INIT
 window.addEventListener('load', function() {
 checkReferralOnLoad();
 
-var saved = localStorage.getItem('cashx_session_v9');
+var saved = localStorage.getItem('cashx_session_v10');
 if (saved) {
 try {
 var session = JSON.parse(saved);
@@ -2192,7 +2194,7 @@ if (isAdmin) {
 session.admin = true;
 session.adminName = currentAdminName;
 }
-localStorage.setItem('cashx_session_v9', JSON.stringify(session));
+localStorage.setItem('cashx_session_v10', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
@@ -2200,17 +2202,18 @@ navigate = function(pageId) {
 origNavigate(pageId);
 if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 if (pageId === 'home' || pageId === 'client-login' || pageId === 'admin-login') {
-localStorage.removeItem('cashx_session_v9');
+localStorage.removeItem('cashx_session_v10');
 }
 };
 
-console.log('🚀 CASH X v9 Loaded!');
+console.log('🚀 CASH X v10 Loaded!');
 console.log('👤 Super Admin: admin / admin123');
 console.log('📦 Products available: ' + data.products.length);
 console.log('👥 Active Users: ' + (data.activeUsers || ACTIVE_USERS_START));
 console.log('🎁 Registration Bonus: UGX 4,000');
 console.log('👥 Referral Bonus: 23%');
 console.log('📊 Withdrawal Fee: 12%');
+console.log('📦 Products 5,000-70,000 now have 30 days duration');
 })();
 </script>
 </body>
