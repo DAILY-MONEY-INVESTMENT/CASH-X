@@ -210,9 +210,9 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
 </div>
 
-<!-- FLOATING SUPPORT BUTTON -->
+<!-- FLOATING SUPPORT BUTTON - Links to Admin Support -->
 <div class="floating-support" id="floatingSupport">
-    <a href="#" data-nav="admin-dashboard" title="Admin Support">💬</a>
+    <a href="#" onclick="document.getElementById('adminNavBtn').click(); setTimeout(function(){ document.querySelector('[data-admin-tab=\\"support\\"]').click(); }, 300); return false;" title="Admin Support">💬</a>
 </div>
 
 <!-- PAGE: HOME -->
@@ -237,6 +237,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         <div class="info-row"><span class="label">🎁 Registration Bonus</span><span class="value accent">UGX 4,000</span></div>
         <div class="info-row"><span class="label">👥 Referral Bonus</span><span class="value accent">23%</span></div>
         <div class="info-row"><span class="label">⏰ Service</span><span class="value accent">24/7 Support</span></div>
+        <div class="info-row"><span class="label">📌 Referral Bonus Release</span><span class="value gold">After 7 Days</span></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
         <div class="card" style="text-align:center;padding:12px;">
@@ -355,6 +356,10 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <span class="label">📈 Today's Earnings</span>
             <span class="value accent" id="todayEarnings">UGX 0</span>
         </div>
+        <div class="info-row">
+            <span class="label">⏳ Pending Referral Bonus</span>
+            <span class="value gold" id="pendingReferralBonus">UGX 0</span>
+        </div>
     </div>
     <div class="quick-actions">
         <div class="quick-action" data-nav="client-deposit"><span class="icon">💳</span><span class="label">Deposit</span></div>
@@ -435,16 +440,18 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         <div style="font-size:48px;">🎁</div>
         <h3 style="color:#f39c12;">Earn 23% Commission</h3>
         <p style="color:#b0c0d0;font-size:14px;">Share your referral link. When they deposit, you get 23% instantly!</p>
+        <p style="color:#f39c12;font-size:12px;margin-top:4px;">💰 Bonus released to main account after 7 days</p>
     </div>
     <div class="step-list">
         <div class="step-item"><div class="num">1</div><div class="text">Share your referral link with friends</div></div>
         <div class="step-item"><div class="num">2</div><div class="text">They join and make their first deposit</div></div>
-        <div class="step-item"><div class="num">3</div><div class="text">Receive <strong>23% commission</strong> instantly</div></div>
+        <div class="step-item"><div class="num">3</div><div class="text">Receive <strong>23% commission</strong> (released after 7 days)</div></div>
     </div>
     <div class="card">
         <div class="info-row"><span class="label">Your Referral Code</span><span class="value accent" id="referralCodeDisplay" style="font-size:20px;letter-spacing:2px;">------</span></div>
         <div class="info-row"><span class="label">Direct Team</span><span class="value" id="referralCount">0</span></div>
-        <div class="info-row"><span class="label">Commission Earned</span><span class="value accent" id="referralBonus">UGX 0</span></div>
+        <div class="info-row"><span class="label">Pending Bonus</span><span class="value gold" id="pendingReferralBonusDisplay">UGX 0</span></div>
+        <div class="info-row"><span class="label">Total Bonus Earned</span><span class="value accent" id="referralBonus">UGX 0</span></div>
         <div class="info-row"><span class="label">Members Who Invested</span><span class="value" id="referralActive">0</span></div>
     </div>
     <button class="btn btn-primary btn-block" id="copyReferralBtn">📋 Copy Referral Link</button>
@@ -523,6 +530,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <li>Minimum withdrawal is UGX 5,000</li>
             <li>Withdrawal fee is 12% of the amount</li>
             <li>You can only withdraw once every 48 hours (2 days) after your last withdrawal</li>
+            <li>Referral bonus becomes available for withdrawal after 7 days</li>
             <li>Provide correct mobile money number and account holder name</li>
         </ul>
     </div>
@@ -762,6 +770,7 @@ let cachedContacts = [];
 let cachedAdmins = [];
 let dataLoaded = false;
 let loadingData = false;
+let activeUsersCount = 673;
 
 function generateRefCode() {
     return 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -817,6 +826,14 @@ async function loadAllData() {
         const adminsSnap = await db.collection('admins').get();
         cachedAdmins = [];
         adminsSnap.forEach(doc => { cachedAdmins.push({ id: doc.id, ...doc.data() }); });
+
+        // Get active users count from system stats
+        const statsSnap = await db.collection('system').doc('stats').get();
+        if (statsSnap.exists) {
+            activeUsersCount = statsSnap.data().activeUsers || 673;
+        } else {
+            activeUsersCount = 673 + cachedClients.length;
+        }
 
         dataLoaded = true;
     } catch(e) { console.error('Error loading data:', e); }
@@ -877,6 +894,13 @@ async function addMessageToFirebase(data) {
         cachedMessages.push({ id: docRef.id, ...data });
         return docRef.id;
     } catch(e) { return null; }
+}
+
+async function updateSystemStats(updates) {
+    try {
+        await db.collection('system').doc('stats').set(updates, { merge: true });
+        return true;
+    } catch(e) { return false; }
 }
 
 // ============================================================
@@ -982,6 +1006,49 @@ window.addEventListener('hashchange', function() {
 });
 
 // ============================================================
+// PROCESS REFERRAL BONUS (7-day release)
+// ============================================================
+async function processReferralBonus() {
+    await loadAllData();
+    var now = new Date();
+    for (var c = 0; c < cachedClients.length; c++) {
+        var client = cachedClients[c];
+        if (client.referralBonus && client.referralBonus > 0) {
+            if (!client.referralBonusDate) {
+                // Set initial date if not set
+                await updateClientInFirebase(client.id, { referralBonusDate: now.toISOString() });
+                continue;
+            }
+            var bonusDate = new Date(client.referralBonusDate);
+            var daysDiff = (now - bonusDate) / (1000 * 60 * 60 * 24);
+            if (daysDiff >= 7) {
+                // Transfer to main balance
+                var newBalance = (client.balance || 0) + client.referralBonus;
+                await updateClientInFirebase(client.id, {
+                    balance: newBalance,
+                    referralBonus: 0,
+                    referralBonusReleased: (client.referralBonusReleased || 0) + client.referralBonus,
+                    referralBonusDate: null
+                });
+                if (!client.activities) client.activities = [];
+                client.activities.push({
+                    action: 'Referral Bonus Released',
+                    detail: 'UGX ' + client.referralBonus.toLocaleString(),
+                    status: 'successful',
+                    date: now.toISOString()
+                });
+                await updateClientInFirebase(client.id, { activities: client.activities });
+                showToast('🎉 Referral bonus UGX ' + client.referralBonus.toLocaleString() + ' released to your balance!', 'success');
+            }
+        }
+    }
+}
+
+// Run every hour
+setInterval(processReferralBonus, 60 * 60 * 1000);
+setTimeout(processReferralBonus, 10000);
+
+// ============================================================
 // AUTH - REGISTER
 // ============================================================
 document.getElementById('clientRegisterForm').addEventListener('submit', async function(e) {
@@ -1010,6 +1077,7 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
         name: name, phone: phone, password: pass, refCode: refCode,
         referredBy: ref || '', balance: 4000, totalInvested: 0,
         totalProfit: 0, totalWithdrawn: 0, referralBonus: 0,
+        referralBonusDate: null, referralBonusReleased: 0,
         referrals: [], products: [],
         activities: [{action:'Registration Bonus',detail:'UGX 4,000',status:'successful',date:new Date().toISOString()}],
         lastWithdrawal: null, hasDeposited: false, hasInvested: false,
@@ -1022,17 +1090,29 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
         if (referrer) {
             if (!referrer.referrals) referrer.referrals = [];
             referrer.referrals.push(phone);
-            await updateClientInFirebase(referrer.id, { referrals: referrer.referrals });
+            // Add referral bonus to referrer (23% of registration bonus)
+            var bonus = Math.floor(4000 * 0.23);
+            if (!referrer.referralBonus) referrer.referralBonus = 0;
+            referrer.referralBonus += bonus;
+            if (!referrer.referralBonusDate) referrer.referralBonusDate = new Date().toISOString();
+            await updateClientInFirebase(referrer.id, {
+                referrals: referrer.referrals,
+                referralBonus: referrer.referralBonus,
+                referralBonusDate: referrer.referralBonusDate
+            });
         }
     }
 
     var clientId = await addClientToFirebase(clientData);
     if (clientId) {
+        // Update active users count
+        activeUsersCount++;
+        await updateSystemStats({ activeUsers: activeUsersCount });
+        document.getElementById('homeUsers').textContent = activeUsersCount;
+        
         msg.style.color = '#2ecc71';
         msg.textContent = '✅ Registration successful! You received UGX 4,000 bonus!';
         setTimeout(function() { navigate('client-login'); }, 1500);
-        // Update active users display
-        document.getElementById('homeUsers').textContent = cachedClients.length + 1;
     } else {
         msg.textContent = 'Registration failed. Please try again.';
     }
@@ -1156,6 +1236,7 @@ async function updateHomeStats() {
         totalInv += (cachedClients[c].totalInvested || 0);
         totalProf += (cachedClients[c].totalProfit || 0);
     }
+    document.getElementById('homeUsers').textContent = activeUsersCount || 673;
     document.getElementById('homeInvested').textContent = 'UGX ' + totalInv.toLocaleString();
     document.getElementById('homeProfit').textContent = 'UGX ' + totalProf.toLocaleString();
 }
@@ -1175,6 +1256,10 @@ async function renderDashboard() {
     document.getElementById('clientWithdrawn').textContent = 'UGX ' + (client.totalWithdrawn || 0).toLocaleString();
     document.getElementById('clientReferrals').textContent = (client.referrals || []).length;
     document.getElementById('todayEarnings').textContent = 'UGX ' + (client.todayEarnings || 0).toLocaleString();
+    
+    // Pending referral bonus
+    var pendingBonus = client.referralBonus || 0;
+    document.getElementById('pendingReferralBonus').textContent = 'UGX ' + pendingBonus.toLocaleString();
 
     var container = document.getElementById('clientActiveProducts');
     var active = (client.products || []).filter(function(p) { return p.status === 'active'; });
@@ -1399,7 +1484,11 @@ async function renderReferral() {
     if (!client) return;
     document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
     document.getElementById('referralCount').textContent = (client.referrals || []).length;
-    document.getElementById('referralBonus').textContent = 'UGX ' + (client.referralBonus || 0).toLocaleString();
+    var pendingBonus = client.referralBonus || 0;
+    document.getElementById('pendingReferralBonusDisplay').textContent = 'UGX ' + pendingBonus.toLocaleString();
+    var totalBonus = (client.referralBonusReleased || 0) + pendingBonus;
+    document.getElementById('referralBonus').textContent = 'UGX ' + totalBonus.toLocaleString();
+    
     var activeCount = 0;
     if (client.referrals) {
         for (var r = 0; r < client.referrals.length; r++) {
@@ -1466,7 +1555,8 @@ async function renderProfile() {
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var tier = getTier(client.totalInvested || 0);
-    document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + (client.balance || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
+    var pendingBonus = client.referralBonus || 0;
+    document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + (client.balance || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Pending Referral Bonus</span><span class="value gold">UGX ' + pendingBonus.toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Total Referral Bonus</span><span class="value accent">UGX ' + ((client.referralBonusReleased || 0) + pendingBonus).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
 }
 
 // ============================================================
@@ -2000,19 +2090,14 @@ async function renderAdminDeposits() {
                         var referrer = cachedClients.find(function(c) { return c.refCode === client.referredBy; });
                         if (referrer) {
                             var bonus = Math.floor(deposit.amount * 0.23);
-                            if (!referrer.activities) referrer.activities = [];
-                            referrer.activities.push({
-                                action: 'Referral Bonus from ' + client.name,
-                                detail: 'UGX ' + bonus.toLocaleString(),
-                                status: 'successful',
-                                date: new Date().toISOString()
-                            });
+                            if (!referrer.referralBonus) referrer.referralBonus = 0;
+                            if (!referrer.referralBonusDate) referrer.referralBonusDate = new Date().toISOString();
+                            referrer.referralBonus += bonus;
                             await updateClientInFirebase(referrer.id, {
-                                referralBonus: (referrer.referralBonus || 0) + bonus,
-                                balance: (referrer.balance || 0) + bonus,
-                                activities: referrer.activities
+                                referralBonus: referrer.referralBonus,
+                                referralBonusDate: referrer.referralBonusDate
                             });
-                            showToast('🎁 Referral bonus UGX ' + bonus + ' sent to ' + referrer.name, 'success');
+                            showToast('🎁 Referral bonus UGX ' + bonus + ' pending for ' + referrer.name + ' (releases in 7 days)', 'success');
                         }
                     }
                 }
@@ -2237,8 +2322,10 @@ navigate = function(pageId) {
     if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 };
 
-console.log('🚀 CASH X FINAL - Fully Working!');
+console.log('🚀 CASH X FINAL - Fully Working with Referral Bonus 7-day Release!');
 console.log('👤 Super Admin: admin / admin123');
+console.log('📊 Active Users: ' + activeUsersCount);
+console.log('📌 Referral Bonus: Released to main balance after 7 days');
 </script>
 </body>
 </html>
