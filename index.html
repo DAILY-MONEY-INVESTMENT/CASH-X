@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>💰 CASH X – Invest & Earn Daily</title>
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
@@ -177,6 +176,10 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 .modal ul li:last-child{border-bottom:none}
 .modal ul li strong{color:#2ecc71}
 .modal .btn{margin-top:16px}
+.floating-support{position:fixed;bottom:170px;right:20px;z-index:150;display:none}
+.floating-support a{display:flex;align-items:center;justify-content:center;width:56px;height:56px;background:linear-gradient(135deg,#00d4ff,#7b2ffc);border-radius:50%;box-shadow:0 4px 20px rgba(0,212,255,0.4);transition:all .3s ease;text-decoration:none;font-size:28px;animation:float 3s ease-in-out infinite;color:#fff;border:2px solid rgba(255,255,255,0.2)}
+.floating-support a:hover{transform:scale(1.1)}
+.floating-support.show{display:block}
 </style>
 </head>
 <body>
@@ -205,6 +208,11 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 <!-- WHATSAPP FLOAT -->
 <div class="whatsapp-float">
     <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
+</div>
+
+<!-- FLOATING SUPPORT BUTTON (ADMIN ONLY) -->
+<div class="floating-support" id="floatingSupport">
+    <a href="#" data-nav="admin-dashboard" title="Admin Support">💬</a>
 </div>
 
 <!-- PAGE: HOME -->
@@ -697,7 +705,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 
 <script>
 // ============================================================
-// FIREBASE CONFIG - YOUR PROJECT
+// FIREBASE CONFIG
 // ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyDy4y1XPoNNL1ky2DwZG5sebZciu87eIjQ",
@@ -709,12 +717,11 @@ const firebaseConfig = {
   measurementId: "G-G2EGSSW6VW"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ============================================================
-// PRODUCTS DATA
+// PRODUCTS
 // ============================================================
 const PRODUCTS = [
 {id:'p7',name:'HP Pavilion 15',brand:'HP',price:5000,daily:1000,duration:30,icon:'💻',status:'sold'},
@@ -747,21 +754,18 @@ const PRODUCTS = [
 let currentClient = null;
 let isAdmin = false;
 let currentAdminName = 'Support Team';
-let activeUsersCount = 0;
-let allClients = [];
-let allDeposits = [];
-let allWithdrawals = [];
-let allMessages = [];
-let allContacts = [];
-let allAdmins = [];
+let cachedClients = [];
+let cachedDeposits = [];
+let cachedWithdrawals = [];
+let cachedMessages = [];
+let cachedContacts = [];
+let cachedAdmins = [];
+let dataLoaded = false;
+let referralCodeFromURL = null;
 
 // ============================================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================================
-function generateId() {
-    return Math.random().toString(36).substr(2, 9);
-}
-
 function generateRefCode() {
     return 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
@@ -785,29 +789,78 @@ function showToast(msg, type) {
     setTimeout(function() { toast.remove(); }, 4000);
 }
 
-// ============================================================
-// FIREBASE DATA OPERATIONS
-// ============================================================
-
-// --- CLIENTS ---
-async function loadClients() {
-    try {
-        const snapshot = await db.collection('clients').orderBy('createdAt', 'desc').get();
-        allClients = [];
-        snapshot.forEach(doc => {
-            allClients.push({ id: doc.id, ...doc.data() });
-        });
-        activeUsersCount = allClients.length;
-        return allClients;
-    } catch (e) {
-        console.error('Error loading clients:', e);
-        return [];
+function showLoading(show) {
+    // Simple loading indicator
+    if (show) {
+        // Show loading state
     }
 }
 
+// ============================================================
+// CACHED DATA LOADING
+// ============================================================
+async function loadAllData(force = false) {
+    if (dataLoaded && !force) return;
+    
+    showLoading(true);
+    try {
+        // Load clients
+        const clientsSnap = await db.collection('clients').orderBy('createdAt', 'desc').get();
+        cachedClients = [];
+        clientsSnap.forEach(doc => {
+            cachedClients.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Load deposits
+        const depositsSnap = await db.collection('deposits').orderBy('date', 'desc').get();
+        cachedDeposits = [];
+        depositsSnap.forEach(doc => {
+            cachedDeposits.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Load withdrawals
+        const withdrawalsSnap = await db.collection('withdrawals').orderBy('date', 'desc').get();
+        cachedWithdrawals = [];
+        withdrawalsSnap.forEach(doc => {
+            cachedWithdrawals.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Load messages
+        const messagesSnap = await db.collection('messages').orderBy('date', 'asc').get();
+        cachedMessages = [];
+        messagesSnap.forEach(doc => {
+            cachedMessages.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Load contacts
+        const contactsSnap = await db.collection('contacts').get();
+        cachedContacts = [];
+        contactsSnap.forEach(doc => {
+            cachedContacts.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Load admins
+        const adminsSnap = await db.collection('admins').get();
+        cachedAdmins = [];
+        adminsSnap.forEach(doc => {
+            cachedAdmins.push({ id: doc.id, ...doc.data() });
+        });
+
+        dataLoaded = true;
+    } catch (e) {
+        console.error('Error loading data:', e);
+    }
+    showLoading(false);
+}
+
+// ============================================================
+// FIREBASE WRITE OPERATIONS (with cache update)
+// ============================================================
 async function addClientToFirebase(clientData) {
     try {
         const docRef = await db.collection('clients').add(clientData);
+        const newClient = { id: docRef.id, ...clientData };
+        cachedClients.unshift(newClient);
         return docRef.id;
     } catch (e) {
         console.error('Error adding client:', e);
@@ -818,6 +871,11 @@ async function addClientToFirebase(clientData) {
 async function updateClientInFirebase(clientId, updates) {
     try {
         await db.collection('clients').doc(clientId).update(updates);
+        // Update cache
+        const idx = cachedClients.findIndex(c => c.id === clientId);
+        if (idx !== -1) {
+            cachedClients[idx] = { ...cachedClients[idx], ...updates };
+        }
         return true;
     } catch (e) {
         console.error('Error updating client:', e);
@@ -825,29 +883,11 @@ async function updateClientInFirebase(clientId, updates) {
     }
 }
 
-async function getClientByPhone(phone) {
-    await loadClients();
-    return allClients.find(c => c.phone === phone) || null;
-}
-
-// --- DEPOSITS ---
-async function loadDeposits() {
-    try {
-        const snapshot = await db.collection('deposits').orderBy('date', 'desc').get();
-        allDeposits = [];
-        snapshot.forEach(doc => {
-            allDeposits.push({ id: doc.id, ...doc.data() });
-        });
-        return allDeposits;
-    } catch (e) {
-        console.error('Error loading deposits:', e);
-        return [];
-    }
-}
-
 async function addDepositToFirebase(depositData) {
     try {
         const docRef = await db.collection('deposits').add(depositData);
+        const newDeposit = { id: docRef.id, ...depositData };
+        cachedDeposits.unshift(newDeposit);
         return docRef.id;
     } catch (e) {
         console.error('Error adding deposit:', e);
@@ -858,6 +898,10 @@ async function addDepositToFirebase(depositData) {
 async function updateDepositInFirebase(depositId, updates) {
     try {
         await db.collection('deposits').doc(depositId).update(updates);
+        const idx = cachedDeposits.findIndex(d => d.id === depositId);
+        if (idx !== -1) {
+            cachedDeposits[idx] = { ...cachedDeposits[idx], ...updates };
+        }
         return true;
     } catch (e) {
         console.error('Error updating deposit:', e);
@@ -865,24 +909,11 @@ async function updateDepositInFirebase(depositId, updates) {
     }
 }
 
-// --- WITHDRAWALS ---
-async function loadWithdrawals() {
-    try {
-        const snapshot = await db.collection('withdrawals').orderBy('date', 'desc').get();
-        allWithdrawals = [];
-        snapshot.forEach(doc => {
-            allWithdrawals.push({ id: doc.id, ...doc.data() });
-        });
-        return allWithdrawals;
-    } catch (e) {
-        console.error('Error loading withdrawals:', e);
-        return [];
-    }
-}
-
 async function addWithdrawalToFirebase(withdrawalData) {
     try {
         const docRef = await db.collection('withdrawals').add(withdrawalData);
+        const newWithdrawal = { id: docRef.id, ...withdrawalData };
+        cachedWithdrawals.unshift(newWithdrawal);
         return docRef.id;
     } catch (e) {
         console.error('Error adding withdrawal:', e);
@@ -893,6 +924,10 @@ async function addWithdrawalToFirebase(withdrawalData) {
 async function updateWithdrawalInFirebase(withdrawalId, updates) {
     try {
         await db.collection('withdrawals').doc(withdrawalId).update(updates);
+        const idx = cachedWithdrawals.findIndex(d => d.id === withdrawalId);
+        if (idx !== -1) {
+            cachedWithdrawals[idx] = { ...cachedWithdrawals[idx], ...updates };
+        }
         return true;
     } catch (e) {
         console.error('Error updating withdrawal:', e);
@@ -900,132 +935,15 @@ async function updateWithdrawalInFirebase(withdrawalId, updates) {
     }
 }
 
-// --- MESSAGES ---
-async function loadMessages() {
-    try {
-        const snapshot = await db.collection('messages').orderBy('date', 'asc').get();
-        allMessages = [];
-        snapshot.forEach(doc => {
-            allMessages.push({ id: doc.id, ...doc.data() });
-        });
-        return allMessages;
-    } catch (e) {
-        console.error('Error loading messages:', e);
-        return [];
-    }
-}
-
 async function addMessageToFirebase(messageData) {
     try {
         const docRef = await db.collection('messages').add(messageData);
+        const newMsg = { id: docRef.id, ...messageData };
+        cachedMessages.push(newMsg);
         return docRef.id;
     } catch (e) {
         console.error('Error adding message:', e);
         return null;
-    }
-}
-
-// --- CONTACTS ---
-async function loadContacts() {
-    try {
-        const snapshot = await db.collection('contacts').get();
-        allContacts = [];
-        snapshot.forEach(doc => {
-            allContacts.push({ id: doc.id, ...doc.data() });
-        });
-        return allContacts;
-    } catch (e) {
-        console.error('Error loading contacts:', e);
-        return [];
-    }
-}
-
-async function addContactToFirebase(contactData) {
-    try {
-        const docRef = await db.collection('contacts').add(contactData);
-        return docRef.id;
-    } catch (e) {
-        console.error('Error adding contact:', e);
-        return null;
-    }
-}
-
-async function updateContactInFirebase(contactId, updates) {
-    try {
-        await db.collection('contacts').doc(contactId).update(updates);
-        return true;
-    } catch (e) {
-        console.error('Error updating contact:', e);
-        return false;
-    }
-}
-
-async function deleteContactFromFirebase(contactId) {
-    try {
-        await db.collection('contacts').doc(contactId).delete();
-        return true;
-    } catch (e) {
-        console.error('Error deleting contact:', e);
-        return false;
-    }
-}
-
-// --- ADMINS ---
-async function loadAdmins() {
-    try {
-        const snapshot = await db.collection('admins').get();
-        allAdmins = [];
-        snapshot.forEach(doc => {
-            allAdmins.push({ id: doc.id, ...doc.data() });
-        });
-        return allAdmins;
-    } catch (e) {
-        console.error('Error loading admins:', e);
-        return [];
-    }
-}
-
-async function addAdminToFirebase(adminData) {
-    try {
-        const docRef = await db.collection('admins').add(adminData);
-        return docRef.id;
-    } catch (e) {
-        console.error('Error adding admin:', e);
-        return null;
-    }
-}
-
-async function deleteAdminFromFirebase(adminId) {
-    try {
-        await db.collection('admins').doc(adminId).delete();
-        return true;
-    } catch (e) {
-        console.error('Error deleting admin:', e);
-        return false;
-    }
-}
-
-// --- SYSTEM STATS ---
-async function loadSystemStats() {
-    try {
-        const doc = await db.collection('system').doc('stats').get();
-        if (doc.exists) {
-            return doc.data();
-        }
-        return { activeUsers: 673 };
-    } catch (e) {
-        console.error('Error loading stats:', e);
-        return { activeUsers: 673 };
-    }
-}
-
-async function updateSystemStats(updates) {
-    try {
-        await db.collection('system').doc('stats').set(updates, { merge: true });
-        return true;
-    } catch (e) {
-        console.error('Error updating stats:', e);
-        return false;
     }
 }
 
@@ -1092,7 +1010,7 @@ function navigate(pageId) {
         if (pageId === 'client-messages') renderMessages();
         if (pageId === 'client-referral') renderReferral();
         if (pageId === 'client-profile') renderProfile();
-        if (pageId === 'client-deposit') { renderDeposit(); }
+        if (pageId === 'client-deposit') renderDeposit();
         if (pageId === 'client-withdraw') renderWithdraw();
         if (pageId === 'admin-dashboard') renderAdminDashboard();
         if (pageId === 'home') updateHomeStats();
@@ -1109,6 +1027,14 @@ function updateNav(pageId) {
     }
     var adminBtn = document.getElementById('adminNavBtn');
     adminBtn.classList.toggle('hidden', !isAdmin);
+    
+    // Show/hide floating support button for admin
+    var floatSupport = document.getElementById('floatingSupport');
+    if (isAdmin) {
+        floatSupport.classList.add('show');
+    } else {
+        floatSupport.classList.remove('show');
+    }
 }
 
 document.addEventListener('click', function(e) {
@@ -1147,9 +1073,8 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
     }
     if (pass.length < 4) { msg.textContent = 'Password must be at least 4 characters.'; return; }
 
-    // Check if phone already exists
-    await loadClients();
-    if (allClients.find(c => c.phone === phone)) {
+    await loadAllData();
+    if (cachedClients.find(c => c.phone === phone)) {
         msg.textContent = 'Phone already registered.';
         return;
     }
@@ -1178,10 +1103,9 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
         createdAt: new Date().toISOString()
     };
 
-    // Handle referral - add to referrer's referrals list
+    // Handle referral
     if (ref) {
-        await loadClients();
-        var referrer = allClients.find(c => c.refCode === ref);
+        var referrer = cachedClients.find(c => c.refCode === ref);
         if (referrer) {
             if (!referrer.referrals) referrer.referrals = [];
             referrer.referrals.push(phone);
@@ -1192,10 +1116,9 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
     var clientId = await addClientToFirebase(clientData);
     if (clientId) {
         // Update active users count
-        var stats = await loadSystemStats();
-        var newCount = (stats.activeUsers || 673) + 1;
-        await updateSystemStats({ activeUsers: newCount });
-        activeUsersCount = newCount;
+        var stats = await db.collection('system').doc('stats').get();
+        var currentCount = stats.exists ? (stats.data().activeUsers || 673) : 673;
+        await db.collection('system').doc('stats').set({ activeUsers: currentCount + 1 }, { merge: true });
 
         msg.style.color = '#2ecc71';
         msg.textContent = '✅ Registration successful! You received UGX 4,000 bonus!';
@@ -1216,8 +1139,8 @@ document.getElementById('clientLoginForm').addEventListener('submit', async func
         return;
     }
 
-    await loadClients();
-    var client = allClients.find(c => c.phone === phone);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === phone);
     if (!client || client.password !== pass) {
         msg.textContent = 'Invalid phone or password.';
         return;
@@ -1236,8 +1159,8 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
     var pass = document.getElementById('adminLoginPass').value.trim();
     var msg = document.getElementById('adminLoginMsg');
 
-    await loadAdmins();
-    var admin = allAdmins.find(a => a.username === user && a.password === pass);
+    await loadAllData();
+    var admin = cachedAdmins.find(a => a.username === user && a.password === pass);
     if (admin) {
         isAdmin = true;
         currentAdminName = name || admin.name;
@@ -1248,10 +1171,10 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
     } else {
         // Check default admin
         if (user === 'admin' && pass === 'admin123') {
-            // Create default admin if not exists
-            var defaultAdmin = allAdmins.find(a => a.username === 'admin');
+            var defaultAdmin = cachedAdmins.find(a => a.username === 'admin');
             if (!defaultAdmin) {
-                await addAdminToFirebase({ name: 'Super Admin', username: 'admin', password: 'admin123' });
+                await db.collection('admins').add({ name: 'Super Admin', username: 'admin', password: 'admin123' });
+                await loadAllData(true);
             }
             isAdmin = true;
             currentAdminName = name || 'Super Admin';
@@ -1268,6 +1191,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
 document.getElementById('clientLogoutBtn').addEventListener('click', function() {
     currentClient = null;
     isAdmin = false;
+    // Don't clear session, just navigate
     navigate('home');
     showToast('Logged out.', 'info');
 });
@@ -1281,25 +1205,25 @@ document.getElementById('adminLogoutBtn').addEventListener('click', function() {
 // ============================================================
 // WELCOME MODAL
 // ============================================================
-var modalShown = localStorage.getItem('cashx_welcome_shown_v11');
+var modalShown = localStorage.getItem('cashx_welcome_shown_v12');
 if (!modalShown) {
     document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
     document.getElementById('welcomeModal').classList.add('hidden');
-    localStorage.setItem('cashx_welcome_shown_v11', 'true');
+    localStorage.setItem('cashx_welcome_shown_v12', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
     document.getElementById('welcomeModal').classList.add('hidden');
-    localStorage.setItem('cashx_welcome_shown_v11', 'true');
+    localStorage.setItem('cashx_welcome_shown_v12', 'true');
 });
 
 // ============================================================
 // WHATSAPP
 // ============================================================
 async function updateWhatsAppButton() {
-    await loadContacts();
-    var whatsapp = allContacts.length > 0 ? allContacts[0].number : '0704072227';
+    await loadAllData();
+    var whatsapp = cachedContacts.length > 0 ? cachedContacts[0].number : '0704072227';
     var btn = document.getElementById('whatsappFloatBtn');
     btn.href = 'https://wa.me/256' + whatsapp.replace(/\D/g, '');
 }
@@ -1309,15 +1233,15 @@ updateWhatsAppButton();
 // HOME STATS
 // ============================================================
 async function updateHomeStats() {
-    await loadClients();
-    var stats = await loadSystemStats();
-    var activeUsers = stats.activeUsers || 673;
+    await loadAllData();
+    var stats = await db.collection('system').doc('stats').get();
+    var activeUsers = stats.exists ? (stats.data().activeUsers || 673) : 673;
     document.getElementById('homeUsers').textContent = activeUsers;
 
     var totalInv = 0, totalProf = 0;
-    for (var c = 0; c < allClients.length; c++) {
-        totalInv += (allClients[c].totalInvested || 0);
-        totalProf += (allClients[c].totalProfit || 0);
+    for (var c = 0; c < cachedClients.length; c++) {
+        totalInv += (cachedClients[c].totalInvested || 0);
+        totalProf += (cachedClients[c].totalProfit || 0);
     }
     document.getElementById('homeInvested').textContent = 'UGX ' + totalInv.toLocaleString();
     document.getElementById('homeProfit').textContent = 'UGX ' + totalProf.toLocaleString();
@@ -1328,9 +1252,9 @@ async function updateHomeStats() {
 // ============================================================
 async function processDailyEarnings() {
     var now = new Date();
-    await loadClients();
-    for (var c = 0; c < allClients.length; c++) {
-        var client = allClients[c];
+    await loadAllData();
+    for (var c = 0; c < cachedClients.length; c++) {
+        var client = cachedClients[c];
         if (client.products && client.products.length > 0) {
             var todayEarnings = 0;
             var updated = false;
@@ -1384,8 +1308,8 @@ setTimeout(processDailyEarnings, 5000);
 // RENDER DASHBOARD
 // ============================================================
 async function renderDashboard() {
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
     var tier = getTier(client.totalInvested || 0);
@@ -1463,8 +1387,8 @@ function renderProducts() {
             var productId = this.dataset.id;
             var product = PRODUCTS.find(function(p) { return p.id === productId; });
             if (!product) return;
-            await loadClients();
-            var client = allClients.find(c => c.phone === currentClient);
+            await loadAllData();
+            var client = cachedClients.find(c => c.phone === currentClient);
             if (!client) { showToast('Please login first', 'error'); return; }
             if ((client.balance || 0) < product.price) {
                 showToast('Insufficient balance! Need UGX ' + product.price.toLocaleString(), 'error');
@@ -1524,8 +1448,8 @@ for (var fb = 0; fb < filterBtns.length; fb++) {
 // ============================================================
 async function renderMyItems() {
     var container = document.getElementById('myItemsList');
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
     var items = client.products || [];
@@ -1547,17 +1471,15 @@ async function renderMyItems() {
 // ============================================================
 async function renderMessages() {
     var container = document.getElementById('messageContainer');
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
-    await loadAdmins();
-    var adminNames = allAdmins.map(function(a) { return a.name; });
-    var randomAdmin = adminNames[Math.floor(Math.random() * adminNames.length)] || 'Support Team';
+    var adminNames = cachedAdmins.map(function(a) { return a.name; });
+    var randomAdmin = adminNames.length > 0 ? adminNames[Math.floor(Math.random() * adminNames.length)] : 'Support Team';
     document.getElementById('adminNameDisplay').textContent = randomAdmin;
 
-    await loadMessages();
-    var clientMessages = allMessages.filter(function(m) { return m.clientPhone === currentClient; });
+    var clientMessages = cachedMessages.filter(function(m) { return m.clientPhone === currentClient; });
     if (clientMessages.length === 0) {
         container.innerHTML = '<div class="message-bubble"><div class="sender">' + randomAdmin + '</div><div class="text">Hello and welcome! 😊 I\'m here to help you with deposits, withdrawals, investments, and referral commission. What can I help you with today?</div><div class="time">Just now</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn btn-sm btn-outline quick-msg" data-msg="How do I deposit money?">💳 How do I deposit money?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="Why is my withdrawal pending?">🏦 Why is my withdrawal pending?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="Which product should I start with?">🛒 Which product should I start with?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="How does referral commission work?">👥 How does referral commission work?</button></div>';
         var quickMsgs = container.querySelectorAll('.quick-msg');
@@ -1589,9 +1511,9 @@ async function sendMessage(text) {
 
     if (!isAdmin) {
         setTimeout(async function() {
-            await loadAdmins();
-            var adminNames = allAdmins.map(function(a) { return a.name; });
-            var randomAdmin = adminNames[Math.floor(Math.random() * adminNames.length)] || 'Support Team';
+            await loadAllData();
+            var adminNames = cachedAdmins.map(function(a) { return a.name; });
+            var randomAdmin = adminNames.length > 0 ? adminNames[Math.floor(Math.random() * adminNames.length)] : 'Support Team';
             await addMessageToFirebase({
                 clientPhone: currentClient,
                 sender: 'support',
@@ -1622,8 +1544,8 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 // RENDER REFERRAL
 // ============================================================
 async function renderReferral() {
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
     document.getElementById('referralCount').textContent = (client.referrals || []).length;
@@ -1632,7 +1554,7 @@ async function renderReferral() {
     var activeCount = 0;
     if (client.referrals) {
         for (var r = 0; r < client.referrals.length; r++) {
-            var refClient = allClients.find(c => c.phone === client.referrals[r]);
+            var refClient = cachedClients.find(c => c.phone === client.referrals[r]);
             if (refClient && refClient.totalInvested > 0) activeCount++;
         }
     }
@@ -1640,7 +1562,7 @@ async function renderReferral() {
 }
 
 function getReferralLink() {
-    var client = allClients.find(c => c.phone === currentClient);
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return '';
     return window.location.origin + window.location.pathname + '?ref=' + client.refCode;
 }
@@ -1691,8 +1613,8 @@ document.getElementById('shareReferralBtn').addEventListener('click', function()
 // RENDER PROFILE
 // ============================================================
 async function renderProfile() {
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var tier = getTier(client.totalInvested || 0);
     document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + (client.balance || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
@@ -1702,21 +1624,20 @@ async function renderProfile() {
 // RENDER DEPOSIT
 // ============================================================
 async function renderDeposit() {
-    await loadContacts();
-    if (allContacts.length === 0) {
+    await loadAllData();
+    if (cachedContacts.length === 0) {
         document.getElementById('currentAccountNumber').textContent = 'No accounts available';
         document.getElementById('currentAccountName').textContent = 'Contact admin';
         document.getElementById('currentAccountProvider').textContent = '';
         return;
     }
-    var randomIndex = Math.floor(Math.random() * allContacts.length);
-    var account = allContacts[randomIndex];
+    var randomIndex = Math.floor(Math.random() * cachedContacts.length);
+    var account = cachedContacts[randomIndex];
     document.getElementById('currentAccountNumber').textContent = account.number;
     document.getElementById('currentAccountName').textContent = account.name;
     document.getElementById('currentAccountProvider').textContent = account.type;
 
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (client) {
         document.getElementById('depositSender').value = client.phone;
     }
@@ -1734,8 +1655,8 @@ document.getElementById('depositForm').addEventListener('submit', async function
     var name = document.getElementById('depositName').value.trim();
     var msg = document.getElementById('depositMsg');
 
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) { msg.textContent = 'Please login first.'; return; }
 
     if (!amount || amount < 15000) { msg.textContent = 'Minimum deposit is UGX 15,000'; return; }
@@ -1780,8 +1701,8 @@ document.getElementById('depositForm').addEventListener('submit', async function
 // RENDER WITHDRAW
 // ============================================================
 async function renderWithdraw() {
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (client) {
         document.getElementById('withdrawBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
     }
@@ -1811,8 +1732,8 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
     var msg = document.getElementById('withdrawMsg');
 
     if (!currentClient) { msg.textContent = 'Please login first.'; return; }
-    await loadClients();
-    var client = allClients.find(c => c.phone === currentClient);
+    await loadAllData();
+    var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
     if (!client.hasDeposited) {
@@ -1879,7 +1800,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
             adminNotified: false
         });
 
-        var updatedClient = allClients.find(c => c.phone === currentClient);
+        var updatedClient = cachedClients.find(c => c.phone === currentClient);
         if (updatedClient) {
             if (!updatedClient.activities) updatedClient.activities = [];
             updatedClient.activities.push({
@@ -1908,16 +1829,15 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
 async function renderAdminDashboard() {
     document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
-    await loadClients();
-    document.getElementById('adminTotalClients').textContent = allClients.length;
+    await loadAllData();
+    document.getElementById('adminTotalClients').textContent = cachedClients.length;
 
-    await loadDeposits();
-    var pendingDeposits = allDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    var pendingDeposits = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     document.getElementById('adminPendingDeposits').textContent = pendingDeposits.length;
 
     var totalBalance = 0;
-    for (var c = 0; c < allClients.length; c++) {
-        totalBalance += (allClients[c].balance || 0);
+    for (var c = 0; c < cachedClients.length; c++) {
+        totalBalance += (cachedClients[c].balance || 0);
     }
     document.getElementById('adminSystemBalance').textContent = 'UGX ' + totalBalance.toLocaleString();
 
@@ -1928,18 +1848,18 @@ async function renderAdminDashboard() {
     renderAdminSupport();
     renderAdminList();
 
-    document.getElementById('whatsappNumber').value = allContacts.length > 0 ? allContacts[0].number : '0704072227';
+    document.getElementById('whatsappNumber').value = cachedContacts.length > 0 ? cachedContacts[0].number : '0704072227';
 }
 
 function renderAdminClients() {
     var container = document.getElementById('adminClientList');
-    if (allClients.length === 0) {
+    if (cachedClients.length === 0) {
         container.innerHTML = '<div class="text-muted">No clients registered.</div>';
         return;
     }
     var html = '';
-    for (var c = 0; c < allClients.length; c++) {
-        var client = allClients[c];
+    for (var c = 0; c < cachedClients.length; c++) {
+        var client = cachedClients[c];
         var tier = getTier(client.totalInvested || 0);
         var refCount = (client.referrals || []).length;
         html += '<div class="list-item" data-phone="' + client.phone + '"><div class="info"><span class="name">' + client.name + ' <span class="badge-vip" style="font-size:10px;">' + tier + '</span></span><span class="detail">' + client.phone + ' · Balance: UGX ' + (client.balance || 0).toLocaleString() + '</span><span class="detail">Deposited: ' + (client.hasDeposited ? '✅' : '❌') + ' · Invested: ' + (client.hasInvested ? '✅' : '❌') + '</span><span class="detail">Ref Code: ' + client.refCode + ' · Referrals: ' + refCount + '</span><span class="detail">Today\'s Earnings: UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="actions"><button class="btn btn-sm btn-success adminDepositBtn">+ Deposit</button><button class="btn btn-sm btn-danger adminWithdrawBtn">- Withdraw</button></div></div>';
@@ -1959,8 +1879,8 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadClients();
-                var client = allClients.find(c => c.phone === phone);
+                await loadAllData();
+                var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 var newBal = (client.balance || 0) + val;
                 if (!client.activities) client.activities = [];
@@ -1986,8 +1906,8 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadClients();
-                var client = allClients.find(c => c.phone === phone);
+                await loadAllData();
+                var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 if ((client.balance || 0) < val) {
                     alert('Insufficient balance!');
@@ -2014,13 +1934,13 @@ function renderAdminClients() {
 
 function renderAdminContacts() {
     var container = document.getElementById('adminContactList');
-    if (allContacts.length === 0) {
+    if (cachedContacts.length === 0) {
         container.innerHTML = '<div class="text-muted">No accounts.</div>';
         return;
     }
     var html = '';
-    for (var c = 0; c < allContacts.length; c++) {
-        var contact = allContacts[c];
+    for (var c = 0; c < cachedContacts.length; c++) {
+        var contact = cachedContacts[c];
         html += '<div class="list-item" data-id="' + contact.id + '"><div class="info"><span class="name">' + contact.name + '</span><span class="detail">' + contact.number + ' · ' + contact.type + '</span></div><div class="actions"><button class="btn btn-sm btn-outline editContactBtn">✏️</button><button class="btn btn-sm btn-danger deleteContactBtn">🗑️</button></div></div>';
     }
     container.innerHTML = html;
@@ -2034,7 +1954,7 @@ function renderAdminContacts() {
 
         editBtn.addEventListener('click', function(id) {
             return function() {
-                var contact = allContacts.find(function(c) { return c.id === id; });
+                var contact = cachedContacts.find(function(c) { return c.id === id; });
                 if (!contact) return;
                 document.getElementById('contactEditId').value = id;
                 document.getElementById('contactName').value = contact.name;
@@ -2048,8 +1968,8 @@ function renderAdminContacts() {
         deleteBtn.addEventListener('click', function(id) {
             return async function() {
                 if (confirm('Delete this account?')) {
-                    await deleteContactFromFirebase(id);
-                    await loadContacts();
+                    await db.collection('contacts').doc(id).delete();
+                    await loadAllData(true);
                     renderAdminContacts();
                     showToast('Account deleted.', 'info');
                 }
@@ -2081,40 +2001,41 @@ document.getElementById('contactForm').addEventListener('submit', async function
     if (!name || !number) { alert('Please fill all fields.'); return; }
 
     if (id) {
-        await updateContactInFirebase(id, { name: name, number: number, type: type });
+        await db.collection('contacts').doc(id).update({ name: name, number: number, type: type });
+        await loadAllData(true);
         showToast('Account updated!', 'success');
     } else {
-        await addContactToFirebase({ name: name, number: number, type: type });
+        await db.collection('contacts').add({ name: name, number: number, type: type });
+        await loadAllData(true);
         showToast('Account added!', 'success');
     }
     document.getElementById('contactFormContainer').style.display = 'none';
-    await loadContacts();
     renderAdminContacts();
 });
 
 document.getElementById('saveWhatsappBtn').addEventListener('click', async function() {
     var number = document.getElementById('whatsappNumber').value.trim();
     if (!number) { alert('Please enter a WhatsApp number.'); return; }
-    if (allContacts.length > 0) {
-        await updateContactInFirebase(allContacts[0].id, { number: number });
+    if (cachedContacts.length > 0) {
+        await db.collection('contacts').doc(cachedContacts[0].id).update({ number: number });
     } else {
-        await addContactToFirebase({ name: 'WhatsApp Support', number: number, type: 'WhatsApp' });
+        await db.collection('contacts').add({ name: 'WhatsApp Support', number: number, type: 'WhatsApp' });
     }
-    await loadContacts();
+    await loadAllData(true);
     updateWhatsAppButton();
     showToast('✅ WhatsApp number saved!', 'success');
 });
 
 // ============================================================
-// ADMIN SUPPORT CHAT
+// ADMIN SUPPORT
 // ============================================================
 async function renderAdminSupport() {
     var container = document.getElementById('adminSupportList');
-    await loadMessages();
+    await loadAllData();
     var clientsWithMessages = [];
-    for (var m = 0; m < allMessages.length; m++) {
-        if (clientsWithMessages.indexOf(allMessages[m].clientPhone) === -1) {
-            clientsWithMessages.push(allMessages[m].clientPhone);
+    for (var m = 0; m < cachedMessages.length; m++) {
+        if (clientsWithMessages.indexOf(cachedMessages[m].clientPhone) === -1) {
+            clientsWithMessages.push(cachedMessages[m].clientPhone);
         }
     }
 
@@ -2126,9 +2047,8 @@ async function renderAdminSupport() {
     var html = '';
     for (var c = 0; c < clientsWithMessages.length; c++) {
         var phone = clientsWithMessages[c];
-        await loadClients();
-        var client = allClients.find(function(cl) { return cl.phone === phone; });
-        var clientMessages = allMessages.filter(function(m) { return m.clientPhone === phone; });
+        var client = cachedClients.find(function(cl) { return cl.phone === phone; });
+        var clientMessages = cachedMessages.filter(function(m) { return m.clientPhone === phone; });
         var lastMsg = clientMessages[clientMessages.length - 1];
         var unread = 0;
         for (var um = 0; um < clientMessages.length; um++) {
@@ -2144,7 +2064,7 @@ async function renderAdminSupport() {
             var item = this.closest('.list-item');
             var phone = item.dataset.phone;
             document.getElementById('adminReplyClient').value = phone;
-            var client = allClients.find(function(c) { return c.phone === phone; });
+            var client = cachedClients.find(function(c) { return c.phone === phone; });
             document.getElementById('adminReplyTitle').textContent = 'Replying to ' + (client ? client.name : phone);
             document.getElementById('adminReplyContainer').style.display = 'block';
             document.getElementById('adminReplyContainer').scrollIntoView({ behavior: 'smooth' });
@@ -2167,7 +2087,7 @@ document.getElementById('adminSendReplyBtn').addEventListener('click', async fun
 
     document.getElementById('adminReplyMessage').value = '';
     document.getElementById('adminReplyContainer').style.display = 'none';
-    await loadMessages();
+    await loadAllData(true);
     renderAdminSupport();
     showToast('✅ Reply sent!', 'success');
 });
@@ -2177,8 +2097,8 @@ document.getElementById('adminSendReplyBtn').addEventListener('click', async fun
 // ============================================================
 async function renderAdminDeposits() {
     var container = document.getElementById('adminDepositsList');
-    await loadDeposits();
-    var pending = allDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    await loadAllData();
+    var pending = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending deposits.</div>';
         return;
@@ -2186,8 +2106,7 @@ async function renderAdminDeposits() {
     var html = '';
     for (var d = 0; d < pending.length; d++) {
         var deposit = pending[d];
-        await loadClients();
-        var client = allClients.find(function(c) { return c.phone === deposit.clientPhone; });
+        var client = cachedClients.find(function(c) { return c.phone === deposit.clientPhone; });
         html += '<div class="list-item" data-id="' + deposit.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + deposit.amount.toLocaleString() + ' · ' + deposit.sender + '</span><span class="detail">' + (deposit.name || '') + ' · ' + new Date(deposit.date).toLocaleString() + '</span><span class="detail">Status: <span class="status-badge ' + deposit.status + '">' + deposit.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingDepositBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmDepositBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectDepositBtn">❌ Reject</button></div></div>';
     }
     container.innerHTML = html;
@@ -2203,7 +2122,6 @@ async function renderAdminDeposits() {
         processingBtn.addEventListener('click', function(id) {
             return async function() {
                 await updateDepositInFirebase(id, { status: 'processing' });
-                await loadDeposits();
                 renderAdminDashboard();
                 showToast('Deposit status updated to Processing', 'info');
             };
@@ -2211,10 +2129,10 @@ async function renderAdminDeposits() {
 
         confirmBtn.addEventListener('click', function(id) {
             return async function() {
-                var deposit = allDeposits.find(function(d) { return d.id === id; });
+                var deposit = cachedDeposits.find(function(d) { return d.id === id; });
                 if (!deposit) return;
-                await loadClients();
-                var client = allClients.find(function(c) { return c.phone === deposit.clientPhone; });
+                await loadAllData();
+                var client = cachedClients.find(function(c) { return c.phone === deposit.clientPhone; });
                 if (client) {
                     var newBal = (client.balance || 0) + deposit.amount;
                     if (!client.activities) client.activities = [];
@@ -2232,7 +2150,7 @@ async function renderAdminDeposits() {
 
                     // Referral bonus (23%)
                     if (client.referredBy) {
-                        var referrer = allClients.find(function(c) { return c.refCode === client.referredBy; });
+                        var referrer = cachedClients.find(function(c) { return c.refCode === client.referredBy; });
                         if (referrer) {
                             var bonus = Math.floor(deposit.amount * 0.23);
                             if (!referrer.activities) referrer.activities = [];
@@ -2252,7 +2170,6 @@ async function renderAdminDeposits() {
                     }
                 }
                 await updateDepositInFirebase(id, { status: 'successful', adminNotified: true });
-                await loadDeposits();
                 renderAdminDashboard();
                 showToast('✅ Deposit of UGX ' + deposit.amount.toLocaleString() + ' confirmed!', 'success');
             };
@@ -2262,7 +2179,6 @@ async function renderAdminDeposits() {
             return async function() {
                 if (confirm('Reject this deposit?')) {
                     await updateDepositInFirebase(id, { status: 'rejected' });
-                    await loadDeposits();
                     renderAdminDashboard();
                     showToast('Deposit rejected.', 'error');
                 }
@@ -2276,8 +2192,8 @@ async function renderAdminDeposits() {
 // ============================================================
 async function renderAdminWithdrawals() {
     var container = document.getElementById('adminWithdrawalsList');
-    await loadWithdrawals();
-    var pending = allWithdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    await loadAllData();
+    var pending = cachedWithdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending withdrawals.</div>';
         return;
@@ -2285,8 +2201,7 @@ async function renderAdminWithdrawals() {
     var html = '';
     for (var d = 0; d < pending.length; d++) {
         var withdrawal = pending[d];
-        await loadClients();
-        var client = allClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
+        var client = cachedClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
         html += '<div class="list-item" data-id="' + withdrawal.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + withdrawal.amount.toLocaleString() + ' · Fee: UGX ' + withdrawal.fee.toLocaleString() + '</span><span class="detail">📱 ' + withdrawal.number + ' (' + withdrawal.network + ') · ' + new Date(withdrawal.date).toLocaleString() + '</span><span class="detail">Holder: ' + (withdrawal.holderName || 'N/A') + '</span><span class="detail">Status: <span class="status-badge ' + withdrawal.status + '">' + withdrawal.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingWithdrawBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmWithdrawBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectWithdrawBtn">❌ Reject</button></div></div>';
     }
     container.innerHTML = html;
@@ -2302,7 +2217,6 @@ async function renderAdminWithdrawals() {
         processingBtn.addEventListener('click', function(id) {
             return async function() {
                 await updateWithdrawalInFirebase(id, { status: 'processing' });
-                await loadWithdrawals();
                 renderAdminDashboard();
                 showToast('Withdrawal status updated to Processing', 'info');
             };
@@ -2311,7 +2225,6 @@ async function renderAdminWithdrawals() {
         confirmBtn.addEventListener('click', function(id) {
             return async function() {
                 await updateWithdrawalInFirebase(id, { status: 'successful', adminNotified: true });
-                await loadWithdrawals();
                 renderAdminDashboard();
                 showToast('✅ Withdrawal confirmed!', 'success');
             };
@@ -2320,17 +2233,16 @@ async function renderAdminWithdrawals() {
         rejectBtn.addEventListener('click', function(id) {
             return async function() {
                 if (confirm('Reject this withdrawal?')) {
-                    var withdrawal = allWithdrawals.find(function(d) { return d.id === id; });
+                    var withdrawal = cachedWithdrawals.find(function(d) { return d.id === id; });
                     if (withdrawal) {
-                        await loadClients();
-                        var client = allClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
+                        await loadAllData();
+                        var client = cachedClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
                         if (client) {
                             var refund = withdrawal.amount + withdrawal.fee;
                             await updateClientInFirebase(client.id, { balance: (client.balance || 0) + refund });
                         }
                     }
                     await updateWithdrawalInFirebase(id, { status: 'rejected' });
-                    await loadWithdrawals();
                     renderAdminDashboard();
                     showToast('Withdrawal rejected. Funds refunded.', 'error');
                 }
@@ -2344,14 +2256,14 @@ async function renderAdminWithdrawals() {
 // ============================================================
 async function renderAdminList() {
     var container = document.getElementById('adminList');
-    await loadAdmins();
-    if (allAdmins.length === 0) {
+    await loadAllData();
+    if (cachedAdmins.length === 0) {
         container.innerHTML = '<div class="text-muted">No admins.</div>';
         return;
     }
     var html = '';
-    for (var a = 0; a < allAdmins.length; a++) {
-        var admin = allAdmins[a];
+    for (var a = 0; a < cachedAdmins.length; a++) {
+        var admin = cachedAdmins[a];
         html += '<div class="list-item"><div class="info"><span class="name">' + admin.name + '</span><span class="detail">Username: ' + admin.username + '</span></div><div class="actions">' + (admin.username !== 'admin' ? '<button class="btn btn-sm btn-danger deleteAdminBtn" data-id="' + admin.id + '">Delete</button>' : '<span class="badge-sm">Super Admin</span>') + '</div></div>';
     }
     container.innerHTML = html;
@@ -2361,7 +2273,7 @@ async function renderAdminList() {
         deleteBtns[db].addEventListener('click', function() {
             var id = this.dataset.id;
             if (confirm('Delete this admin?')) {
-                deleteAdminFromFirebase(id);
+                db.collection('admins').doc(id).delete();
                 renderAdminList();
                 showToast('Admin deleted.', 'info');
             }
@@ -2375,18 +2287,18 @@ document.getElementById('addAdminBtn').addEventListener('click', async function(
     var pass = document.getElementById('newAdminPass').value.trim();
 
     if (!name || !user || !pass) { alert('Please fill all fields.'); return; }
-    await loadAdmins();
-    for (var a = 0; a < allAdmins.length; a++) {
-        if (allAdmins[a].username === user) {
+    await loadAllData();
+    for (var a = 0; a < cachedAdmins.length; a++) {
+        if (cachedAdmins[a].username === user) {
             alert('Username already exists.');
             return;
         }
     }
-    await addAdminToFirebase({ name: name, username: user, password: pass });
+    await db.collection('admins').add({ name: name, username: user, password: pass });
+    await loadAllData(true);
     document.getElementById('newAdminName').value = '';
     document.getElementById('newAdminUser').value = '';
     document.getElementById('newAdminPass').value = '';
-    await loadAdmins();
     renderAdminList();
     showToast('✅ Admin added!', 'success');
 });
@@ -2424,7 +2336,7 @@ function checkReferralOnLoad() {
     var urlParams = new URLSearchParams(window.location.search);
     var ref = urlParams.get('ref');
     if (ref) {
-        window._referralCode = ref;
+        referralCodeFromURL = ref;
         var regRefInput = document.getElementById('clientRegRef');
         if (regRefInput) regRefInput.value = ref;
         setTimeout(function() {
@@ -2439,19 +2351,24 @@ function checkReferralOnLoad() {
 window.addEventListener('load', function() {
     checkReferralOnLoad();
 
-    var saved = localStorage.getItem('cashx_session_v11');
+    var saved = localStorage.getItem('cashx_session_v12');
     if (saved) {
         try {
             var session = JSON.parse(saved);
             if (session.client) {
                 currentClient = session.client;
-                navigate('client-dashboard');
+                // Load data in background
+                loadAllData().then(function() {
+                    navigate('client-dashboard');
+                });
                 return;
             }
             if (session.admin) {
                 isAdmin = true;
                 currentAdminName = session.adminName || 'Support Team';
-                navigate('admin-dashboard');
+                loadAllData().then(function() {
+                    navigate('admin-dashboard');
+                });
                 return;
             }
         } catch(e) {}
@@ -2466,23 +2383,21 @@ function saveSession() {
         session.admin = true;
         session.adminName = currentAdminName;
     }
-    localStorage.setItem('cashx_session_v11', JSON.stringify(session));
+    localStorage.setItem('cashx_session_v12', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
 navigate = function(pageId) {
     origNavigate(pageId);
     if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
-    if (pageId === 'home' || pageId === 'client-login' || pageId === 'admin-login') {
-        localStorage.removeItem('cashx_session_v11');
-    }
+    // Don't clear session on logout
 };
 
-console.log('🚀 CASH X v11 - Firebase Cloud Version Loaded!');
+console.log('🚀 CASH X v12 - Optimized with caching!');
 console.log('👤 Super Admin: admin / admin123');
 console.log('📦 Products available: ' + PRODUCTS.length);
-console.log('☁️ All data stored in Firebase Cloud');
-console.log('✅ Cross-device sync enabled');
+console.log('☁️ Cross-device sync with local caching');
+console.log('⚡ Faster loading with cached data');
 </script>
 </body>
 </html>
