@@ -705,7 +705,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 
 <script>
 // ============================================================
-// FIREBASE CONFIG
+// FIREBASE CONFIG - YOUR PROJECT
 // ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyDy4y1XPoNNL1ky2DwZG5sebZciu87eIjQ",
@@ -717,11 +717,12 @@ const firebaseConfig = {
   measurementId: "G-G2EGSSW6VW"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ============================================================
-// PRODUCTS
+// PRODUCTS DATA
 // ============================================================
 const PRODUCTS = [
 {id:'p7',name:'HP Pavilion 15',brand:'HP',price:5000,daily:1000,duration:30,icon:'💻',status:'sold'},
@@ -790,60 +791,39 @@ function showToast(msg, type) {
 }
 
 // ============================================================
-// DATA LOADING (Async with cache)
+// DATA LOADING
 // ============================================================
-async function loadAllData(force = false) {
+async function loadAllData(force) {
     if (dataLoaded && !force) return;
     if (loadingData) return;
-    
     loadingData = true;
     try {
-        // Load clients
         const clientsSnap = await db.collection('clients').orderBy('createdAt', 'desc').get();
         cachedClients = [];
-        clientsSnap.forEach(doc => {
-            cachedClients.push({ id: doc.id, ...doc.data() });
-        });
+        clientsSnap.forEach(doc => { cachedClients.push({ id: doc.id, ...doc.data() }); });
 
-        // Load deposits
         const depositsSnap = await db.collection('deposits').orderBy('date', 'desc').get();
         cachedDeposits = [];
-        depositsSnap.forEach(doc => {
-            cachedDeposits.push({ id: doc.id, ...doc.data() });
-        });
+        depositsSnap.forEach(doc => { cachedDeposits.push({ id: doc.id, ...doc.data() }); });
 
-        // Load withdrawals
         const withdrawalsSnap = await db.collection('withdrawals').orderBy('date', 'desc').get();
         cachedWithdrawals = [];
-        withdrawalsSnap.forEach(doc => {
-            cachedWithdrawals.push({ id: doc.id, ...doc.data() });
-        });
+        withdrawalsSnap.forEach(doc => { cachedWithdrawals.push({ id: doc.id, ...doc.data() }); });
 
-        // Load messages
         const messagesSnap = await db.collection('messages').orderBy('date', 'asc').get();
         cachedMessages = [];
-        messagesSnap.forEach(doc => {
-            cachedMessages.push({ id: doc.id, ...doc.data() });
-        });
+        messagesSnap.forEach(doc => { cachedMessages.push({ id: doc.id, ...doc.data() }); });
 
-        // Load contacts
         const contactsSnap = await db.collection('contacts').get();
         cachedContacts = [];
-        contactsSnap.forEach(doc => {
-            cachedContacts.push({ id: doc.id, ...doc.data() });
-        });
+        contactsSnap.forEach(doc => { cachedContacts.push({ id: doc.id, ...doc.data() }); });
 
-        // Load admins
         const adminsSnap = await db.collection('admins').get();
         cachedAdmins = [];
-        adminsSnap.forEach(doc => {
-            cachedAdmins.push({ id: doc.id, ...doc.data() });
-        });
+        adminsSnap.forEach(doc => { cachedAdmins.push({ id: doc.id, ...doc.data() }); });
 
         dataLoaded = true;
-    } catch (e) {
-        console.error('Error loading data:', e);
-    }
+    } catch(e) { console.error('Error loading data:', e); }
     loadingData = false;
 }
 
@@ -856,24 +836,16 @@ async function addClientToFirebase(clientData) {
         const newClient = { id: docRef.id, ...clientData };
         cachedClients.unshift(newClient);
         return docRef.id;
-    } catch (e) {
-        console.error('Error adding client:', e);
-        return null;
-    }
+    } catch(e) { console.error('Error adding client:', e); return null; }
 }
 
 async function updateClientInFirebase(clientId, updates) {
     try {
         await db.collection('clients').doc(clientId).update(updates);
         const idx = cachedClients.findIndex(c => c.id === clientId);
-        if (idx !== -1) {
-            cachedClients[idx] = { ...cachedClients[idx], ...updates };
-        }
+        if (idx !== -1) { cachedClients[idx] = { ...cachedClients[idx], ...updates }; }
         return true;
-    } catch (e) {
-        console.error('Error updating client:', e);
-        return false;
-    }
+    } catch(e) { console.error('Error updating client:', e); return false; }
 }
 
 async function addDepositToFirebase(depositData) {
@@ -882,24 +854,16 @@ async function addDepositToFirebase(depositData) {
         const newDeposit = { id: docRef.id, ...depositData };
         cachedDeposits.unshift(newDeposit);
         return docRef.id;
-    } catch (e) {
-        console.error('Error adding deposit:', e);
-        return null;
-    }
+    } catch(e) { console.error('Error adding deposit:', e); return null; }
 }
 
 async function updateDepositInFirebase(depositId, updates) {
     try {
         await db.collection('deposits').doc(depositId).update(updates);
         const idx = cachedDeposits.findIndex(d => d.id === depositId);
-        if (idx !== -1) {
-            cachedDeposits[idx] = { ...cachedDeposits[idx], ...updates };
-        }
+        if (idx !== -1) { cachedDeposits[idx] = { ...cachedDeposits[idx], ...updates }; }
         return true;
-    } catch (e) {
-        console.error('Error updating deposit:', e);
-        return false;
-    }
+    } catch(e) { console.error('Error updating deposit:', e); return false; }
 }
 
 async function addWithdrawalToFirebase(withdrawalData) {
@@ -908,24 +872,16 @@ async function addWithdrawalToFirebase(withdrawalData) {
         const newWithdrawal = { id: docRef.id, ...withdrawalData };
         cachedWithdrawals.unshift(newWithdrawal);
         return docRef.id;
-    } catch (e) {
-        console.error('Error adding withdrawal:', e);
-        return null;
-    }
+    } catch(e) { console.error('Error adding withdrawal:', e); return null; }
 }
 
 async function updateWithdrawalInFirebase(withdrawalId, updates) {
     try {
         await db.collection('withdrawals').doc(withdrawalId).update(updates);
         const idx = cachedWithdrawals.findIndex(d => d.id === withdrawalId);
-        if (idx !== -1) {
-            cachedWithdrawals[idx] = { ...cachedWithdrawals[idx], ...updates };
-        }
+        if (idx !== -1) { cachedWithdrawals[idx] = { ...cachedWithdrawals[idx], ...updates }; }
         return true;
-    } catch (e) {
-        console.error('Error updating withdrawal:', e);
-        return false;
-    }
+    } catch(e) { console.error('Error updating withdrawal:', e); return false; }
 }
 
 async function addMessageToFirebase(messageData) {
@@ -934,10 +890,7 @@ async function addMessageToFirebase(messageData) {
         const newMsg = { id: docRef.id, ...messageData };
         cachedMessages.push(newMsg);
         return docRef.id;
-    } catch (e) {
-        console.error('Error adding message:', e);
-        return null;
-    }
+    } catch(e) { console.error('Error adding message:', e); return null; }
 }
 
 // ============================================================
@@ -1020,13 +973,8 @@ function updateNav(pageId) {
     }
     var adminBtn = document.getElementById('adminNavBtn');
     adminBtn.classList.toggle('hidden', !isAdmin);
-    
     var floatSupport = document.getElementById('floatingSupport');
-    if (isAdmin) {
-        floatSupport.classList.add('show');
-    } else {
-        floatSupport.classList.remove('show');
-    }
+    if (isAdmin) { floatSupport.classList.add('show'); } else { floatSupport.classList.remove('show'); }
 }
 
 document.addEventListener('click', function(e) {
@@ -1065,7 +1013,7 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
     }
     if (pass.length < 4) { msg.textContent = 'Password must be at least 4 characters.'; return; }
 
-    await loadAllData();
+    await loadAllData(false);
     if (cachedClients.find(c => c.phone === phone)) {
         msg.textContent = 'Phone already registered.';
         return;
@@ -1073,29 +1021,16 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
 
     var refCode = generateRefCode();
     var clientData = {
-        name: name,
-        phone: phone,
-        password: pass,
-        refCode: refCode,
-        referredBy: ref || '',
-        balance: 4000,
-        totalInvested: 0,
-        totalProfit: 0,
-        totalWithdrawn: 0,
-        referralBonus: 0,
-        referrals: [],
-        products: [],
+        name: name, phone: phone, password: pass, refCode: refCode,
+        referredBy: ref || '', balance: 4000, totalInvested: 0,
+        totalProfit: 0, totalWithdrawn: 0, referralBonus: 0,
+        referrals: [], products: [],
         activities: [{action:'Registration Bonus',detail:'UGX 4,000',status:'successful',date:new Date().toISOString()}],
-        lastWithdrawal: null,
-        hasDeposited: false,
-        hasInvested: false,
-        firstInvestmentDate: null,
-        todayEarnings: 0,
-        lastEarningDate: null,
+        lastWithdrawal: null, hasDeposited: false, hasInvested: false,
+        firstInvestmentDate: null, todayEarnings: 0, lastEarningDate: null,
         createdAt: new Date().toISOString()
     };
 
-    // Handle referral
     if (ref) {
         var referrer = cachedClients.find(c => c.refCode === ref);
         if (referrer) {
@@ -1110,7 +1045,6 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
         var stats = await db.collection('system').doc('stats').get();
         var currentCount = stats.exists ? (stats.data().activeUsers || 673) : 673;
         await db.collection('system').doc('stats').set({ activeUsers: currentCount + 1 }, { merge: true });
-
         msg.style.color = '#2ecc71';
         msg.textContent = '✅ Registration successful! You received UGX 4,000 bonus!';
         setTimeout(function() { navigate('client-login'); }, 1500);
@@ -1133,7 +1067,7 @@ document.getElementById('clientLoginForm').addEventListener('submit', async func
         return;
     }
 
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === phone);
     if (!client || client.password !== pass) {
         msg.textContent = 'Invalid phone or password.';
@@ -1156,7 +1090,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
     var pass = document.getElementById('adminLoginPass').value.trim();
     var msg = document.getElementById('adminLoginMsg');
 
-    await loadAllData();
+    await loadAllData(false);
     var admin = cachedAdmins.find(a => a.username === user && a.password === pass);
     if (admin) {
         isAdmin = true;
@@ -1203,24 +1137,24 @@ document.getElementById('adminLogoutBtn').addEventListener('click', function() {
 // ============================================================
 // WELCOME MODAL
 // ============================================================
-var modalShown = localStorage.getItem('cashx_welcome_shown_v13');
+var modalShown = localStorage.getItem('cashx_welcome_shown_v14');
 if (!modalShown) {
     document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
     document.getElementById('welcomeModal').classList.add('hidden');
-    localStorage.setItem('cashx_welcome_shown_v13', 'true');
+    localStorage.setItem('cashx_welcome_shown_v14', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
     document.getElementById('welcomeModal').classList.add('hidden');
-    localStorage.setItem('cashx_welcome_shown_v13', 'true');
+    localStorage.setItem('cashx_welcome_shown_v14', 'true');
 });
 
 // ============================================================
 // WHATSAPP
 // ============================================================
 async function updateWhatsAppButton() {
-    await loadAllData();
+    await loadAllData(false);
     var whatsapp = cachedContacts.length > 0 ? cachedContacts[0].number : '0704072227';
     var btn = document.getElementById('whatsappFloatBtn');
     btn.href = 'https://wa.me/256' + whatsapp.replace(/\D/g, '');
@@ -1231,11 +1165,10 @@ updateWhatsAppButton();
 // HOME STATS
 // ============================================================
 async function updateHomeStats() {
-    await loadAllData();
+    await loadAllData(false);
     var stats = await db.collection('system').doc('stats').get();
     var activeUsers = stats.exists ? (stats.data().activeUsers || 673) : 673;
     document.getElementById('homeUsers').textContent = activeUsers;
-
     var totalInv = 0, totalProf = 0;
     for (var c = 0; c < cachedClients.length; c++) {
         totalInv += (cachedClients[c].totalInvested || 0);
@@ -1250,7 +1183,7 @@ async function updateHomeStats() {
 // ============================================================
 async function processDailyEarnings() {
     var now = new Date();
-    await loadAllData();
+    await loadAllData(false);
     for (var c = 0; c < cachedClients.length; c++) {
         var client = cachedClients[c];
         if (client.products && client.products.length > 0) {
@@ -1262,7 +1195,6 @@ async function processDailyEarnings() {
                     var lastEarning = product.lastEarning || product.purchaseDate;
                     var lastDate = new Date(lastEarning);
                     var hoursDiff = (now - lastDate) / (1000 * 60 * 60);
-
                     if (hoursDiff >= 24) {
                         var earning = product.daily;
                         todayEarnings += earning;
@@ -1270,7 +1202,6 @@ async function processDailyEarnings() {
                         product.dailyEarned = (product.dailyEarned || 0) + earning;
                         product.lastEarning = now.toISOString();
                         updated = true;
-
                         if (!client.activities) client.activities = [];
                         client.activities.push({
                             action: 'Daily Earnings from ' + product.name,
@@ -1303,13 +1234,12 @@ setInterval(processDailyEarnings, 60 * 60 * 1000);
 setTimeout(processDailyEarnings, 5000);
 
 // ============================================================
-// RENDER FUNCTIONS (SHORTENED FOR SPACE)
+// RENDER DASHBOARD
 // ============================================================
 async function renderDashboard() {
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
-
     var tier = getTier(client.totalInvested || 0);
     document.getElementById('clientTierDisplay').textContent = tier;
     document.getElementById('clientBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
@@ -1385,7 +1315,7 @@ function renderProducts() {
             var productId = this.dataset.id;
             var product = PRODUCTS.find(function(p) { return p.id === productId; });
             if (!product) return;
-            await loadAllData();
+            await loadAllData(false);
             var client = cachedClients.find(c => c.phone === currentClient);
             if (!client) { showToast('Please login first', 'error'); return; }
             if ((client.balance || 0) < product.price) {
@@ -1446,16 +1376,14 @@ for (var fb = 0; fb < filterBtns.length; fb++) {
 // ============================================================
 async function renderMyItems() {
     var container = document.getElementById('myItemsList');
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
-
     var items = client.products || [];
     if (items.length === 0) {
         container.innerHTML = '<div class="text-muted">You haven\'t purchased any products yet</div>';
         return;
     }
-
     var html = '';
     for (var i = 0; i < items.length; i++) {
         var p = items[i];
@@ -1469,10 +1397,9 @@ async function renderMyItems() {
 // ============================================================
 async function renderMessages() {
     var container = document.getElementById('messageContainer');
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
-
     var adminNames = cachedAdmins.map(function(a) { return a.name; });
     var randomAdmin = adminNames.length > 0 ? adminNames[Math.floor(Math.random() * adminNames.length)] : 'Support Team';
     document.getElementById('adminNameDisplay').textContent = randomAdmin;
@@ -1488,7 +1415,6 @@ async function renderMessages() {
         }
         return;
     }
-
     var html = '';
     for (var m = 0; m < clientMessages.length; m++) {
         var msg = clientMessages[m];
@@ -1506,10 +1432,9 @@ async function sendMessage(text) {
         date: new Date().toISOString()
     });
     renderMessages();
-
     if (!isAdmin) {
         setTimeout(async function() {
-            await loadAllData();
+            await loadAllData(false);
             var adminNames = cachedAdmins.map(function(a) { return a.name; });
             var randomAdmin = adminNames.length > 0 ? adminNames[Math.floor(Math.random() * adminNames.length)] : 'Support Team';
             await addMessageToFirebase({
@@ -1542,13 +1467,12 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 // RENDER REFERRAL
 // ============================================================
 async function renderReferral() {
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
     document.getElementById('referralCount').textContent = (client.referrals || []).length;
     document.getElementById('referralBonus').textContent = 'UGX ' + (client.referralBonus || 0).toLocaleString();
-
     var activeCount = 0;
     if (client.referrals) {
         for (var r = 0; r < client.referrals.length; r++) {
@@ -1611,7 +1535,7 @@ document.getElementById('shareReferralBtn').addEventListener('click', function()
 // RENDER PROFILE
 // ============================================================
 async function renderProfile() {
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var tier = getTier(client.totalInvested || 0);
@@ -1622,7 +1546,7 @@ async function renderProfile() {
 // RENDER DEPOSIT
 // ============================================================
 async function renderDeposit() {
-    await loadAllData();
+    await loadAllData(false);
     if (cachedContacts.length === 0) {
         document.getElementById('currentAccountNumber').textContent = 'No accounts available';
         document.getElementById('currentAccountName').textContent = 'Contact admin';
@@ -1634,7 +1558,6 @@ async function renderDeposit() {
     document.getElementById('currentAccountNumber').textContent = account.number;
     document.getElementById('currentAccountName').textContent = account.name;
     document.getElementById('currentAccountProvider').textContent = account.type;
-
     var client = cachedClients.find(c => c.phone === currentClient);
     if (client) {
         document.getElementById('depositSender').value = client.phone;
@@ -1653,7 +1576,7 @@ document.getElementById('depositForm').addEventListener('submit', async function
     var name = document.getElementById('depositName').value.trim();
     var msg = document.getElementById('depositMsg');
 
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) { msg.textContent = 'Please login first.'; return; }
 
@@ -1699,7 +1622,7 @@ document.getElementById('depositForm').addEventListener('submit', async function
 // RENDER WITHDRAW
 // ============================================================
 async function renderWithdraw() {
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (client) {
         document.getElementById('withdrawBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
@@ -1730,7 +1653,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
     var msg = document.getElementById('withdrawMsg');
 
     if (!currentClient) { msg.textContent = 'Please login first.'; return; }
-    await loadAllData();
+    await loadAllData(false);
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
@@ -1822,12 +1745,12 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
 });
 
 // ============================================================
-// ADMIN DASHBOARD - SIMPLIFIED
+// ADMIN DASHBOARD - FULL
 // ============================================================
 async function renderAdminDashboard() {
     document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
-    await loadAllData();
+    await loadAllData(false);
     document.getElementById('adminTotalClients').textContent = cachedClients.length;
 
     var pendingDeposits = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -1877,7 +1800,7 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadAllData();
+                await loadAllData(false);
                 var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 var newBal = (client.balance || 0) + val;
@@ -1904,7 +1827,7 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadAllData();
+                await loadAllData(false);
                 var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 if ((client.balance || 0) < val) {
@@ -2029,7 +1952,7 @@ document.getElementById('saveWhatsappBtn').addEventListener('click', async funct
 // ============================================================
 async function renderAdminSupport() {
     var container = document.getElementById('adminSupportList');
-    await loadAllData();
+    await loadAllData(false);
     var clientsWithMessages = [];
     for (var m = 0; m < cachedMessages.length; m++) {
         if (clientsWithMessages.indexOf(cachedMessages[m].clientPhone) === -1) {
@@ -2091,11 +2014,11 @@ document.getElementById('adminSendReplyBtn').addEventListener('click', async fun
 });
 
 // ============================================================
-// ADMIN DEPOSITS & WITHDRAWALS (SIMPLIFIED)
+// ADMIN DEPOSITS
 // ============================================================
 async function renderAdminDeposits() {
     var container = document.getElementById('adminDepositsList');
-    await loadAllData();
+    await loadAllData(false);
     var pending = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending deposits.</div>';
@@ -2129,7 +2052,7 @@ async function renderAdminDeposits() {
             return async function() {
                 var deposit = cachedDeposits.find(function(d) { return d.id === id; });
                 if (!deposit) return;
-                await loadAllData();
+                await loadAllData(false);
                 var client = cachedClients.find(function(c) { return c.phone === deposit.clientPhone; });
                 if (client) {
                     var newBal = (client.balance || 0) + deposit.amount;
@@ -2184,9 +2107,12 @@ async function renderAdminDeposits() {
     }
 }
 
+// ============================================================
+// ADMIN WITHDRAWALS
+// ============================================================
 async function renderAdminWithdrawals() {
     var container = document.getElementById('adminWithdrawalsList');
-    await loadAllData();
+    await loadAllData(false);
     var pending = cachedWithdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending withdrawals.</div>';
@@ -2229,7 +2155,7 @@ async function renderAdminWithdrawals() {
                 if (confirm('Reject this withdrawal?')) {
                     var withdrawal = cachedWithdrawals.find(function(d) { return d.id === id; });
                     if (withdrawal) {
-                        await loadAllData();
+                        await loadAllData(false);
                         var client = cachedClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
                         if (client) {
                             var refund = withdrawal.amount + withdrawal.fee;
@@ -2250,7 +2176,7 @@ async function renderAdminWithdrawals() {
 // ============================================================
 async function renderAdminList() {
     var container = document.getElementById('adminList');
-    await loadAllData();
+    await loadAllData(false);
     if (cachedAdmins.length === 0) {
         container.innerHTML = '<div class="text-muted">No admins.</div>';
         return;
@@ -2281,7 +2207,7 @@ document.getElementById('addAdminBtn').addEventListener('click', async function(
     var pass = document.getElementById('newAdminPass').value.trim();
 
     if (!name || !user || !pass) { alert('Please fill all fields.'); return; }
-    await loadAllData();
+    await loadAllData(false);
     for (var a = 0; a < cachedAdmins.length; a++) {
         if (cachedAdmins[a].username === user) {
             alert('Username already exists.');
@@ -2344,13 +2270,13 @@ function checkReferralOnLoad() {
 window.addEventListener('load', function() {
     checkReferralOnLoad();
 
-    var saved = localStorage.getItem('cashx_session_v13');
+    var saved = localStorage.getItem('cashx_session_v14');
     if (saved) {
         try {
             var session = JSON.parse(saved);
             if (session.client) {
                 currentClient = session.client;
-                loadAllData().then(function() {
+                loadAllData(false).then(function() {
                     navigate('client-dashboard');
                 });
                 return;
@@ -2358,7 +2284,7 @@ window.addEventListener('load', function() {
             if (session.admin) {
                 isAdmin = true;
                 currentAdminName = session.adminName || 'Support Team';
-                loadAllData().then(function() {
+                loadAllData(false).then(function() {
                     navigate('admin-dashboard');
                 });
                 return;
@@ -2375,7 +2301,7 @@ function saveSession() {
         session.admin = true;
         session.adminName = currentAdminName;
     }
-    localStorage.setItem('cashx_session_v13', JSON.stringify(session));
+    localStorage.setItem('cashx_session_v14', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
@@ -2384,10 +2310,10 @@ navigate = function(pageId) {
     if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 };
 
-console.log('🚀 CASH X v13 - Fixed register/login buttons!');
+console.log('🚀 CASH X v14 - Fully Working!');
 console.log('👤 Super Admin: admin / admin123');
-console.log('📦 Products available: ' + PRODUCTS.length);
-console.log('☁️ Cross-device sync with caching');
+console.log('📦 Products: ' + PRODUCTS.length);
+console.log('☁️ Firebase connected');
 </script>
 </body>
 </html>
