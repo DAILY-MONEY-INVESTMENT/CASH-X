@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>💰 CASH X – Invest & Earn Daily</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
 body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
@@ -230,7 +233,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
         <div class="card" style="text-align:center;padding:12px;">
             <div style="font-size:24px;">👥</div>
-            <div style="color:#2ecc71;font-weight:700;" id="homeUsers">673</div>
+            <div style="color:#2ecc71;font-weight:700;" id="homeUsers">0</div>
             <div style="color:#8e9fb1;font-size:11px;">Active Users</div>
         </div>
         <div class="card" style="text-align:center;padding:12px;">
@@ -693,11 +696,26 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 </div>
 
 <script>
-(function() {
-const STORAGE_KEY = 'cashx_v10_data';
-let ACTIVE_USERS_START = 673;
+// ============================================================
+// FIREBASE CONFIG - YOUR PROJECT
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDy4y1XPoNNL1ky2DwZG5sebZciu87eIjQ",
+  authDomain: "cash-b00b1.firebaseapp.com",
+  projectId: "cash-b00b1",
+  storageBucket: "cash-b00b1.firebasestorage.app",
+  messagingSenderId: "91601481699",
+  appId: "1:91601481699:web:ccc6a75c77b100f00bfad6",
+  measurementId: "G-G2EGSSW6VW"
+};
 
-// PRODUCTS - Fixed durations: 5000-70000 now 30 days
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ============================================================
+// PRODUCTS DATA
+// ============================================================
 const PRODUCTS = [
 {id:'p7',name:'HP Pavilion 15',brand:'HP',price:5000,daily:1000,duration:30,icon:'💻',status:'sold'},
 {id:'p8',name:'Lenovo IdeaPad 3',brand:'Lenovo',price:15000,daily:3000,duration:30,icon:'💻',status:'available'},
@@ -723,1498 +741,1748 @@ const PRODUCTS = [
 {id:'p22',name:'Apple Mac Pro',brand:'Apple',price:12000000,daily:2400000,duration:120,icon:'💎',status:'available'}
 ];
 
-function defaultData() {
-return {
-clients: [],
-contacts: [
-{id:'1',name:'John Musoke',number:'0704072227',type:'MTN'},
-{id:'2',name:'Sarah Nakato',number:'0701234567',type:'Airtel'},
-{id:'3',name:'David Lubega',number:'0700987654',type:'MTN'}
-],
-deposits: [],
-withdrawals: [],
-products: PRODUCTS,
-admin: {username:'admin', password:'admin123'},
-admins: [{name:'Support Team',username:'admin',password:'admin123'}],
-whatsapp: '0704072227',
-messages: [],
-nextId: 1,
-activeUsers: ACTIVE_USERS_START
-};
-}
-
-let data = loadData();
+// ============================================================
+// GLOBAL VARIABLES
+// ============================================================
 let currentClient = null;
 let isAdmin = false;
 let currentAdminName = 'Support Team';
+let activeUsersCount = 0;
+let allClients = [];
+let allDeposits = [];
+let allWithdrawals = [];
+let allMessages = [];
+let allContacts = [];
+let allAdmins = [];
 
-function loadData() {
-try {
-const raw = localStorage.getItem(STORAGE_KEY);
-if (raw) {
-const parsed = JSON.parse(raw);
-if (!parsed.clients) parsed.clients = [];
-if (!parsed.contacts) parsed.contacts = [];
-if (!parsed.deposits) parsed.deposits = [];
-if (!parsed.withdrawals) parsed.withdrawals = [];
-if (!parsed.products) parsed.products = PRODUCTS;
-if (!parsed.admin) parsed.admin = defaultData().admin;
-if (!parsed.admins) parsed.admins = defaultData().admins;
-if (!parsed.nextId) parsed.nextId = 1;
-if (!parsed.whatsapp) parsed.whatsapp = '0704072227';
-if (!parsed.messages) parsed.messages = [];
-if (!parsed.activeUsers) parsed.activeUsers = ACTIVE_USERS_START;
-return parsed;
-}
-} catch(e) { console.error(e); }
-const def = defaultData();
-saveData(def);
-return def;
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+function generateId() {
+    return Math.random().toString(36).substr(2, 9);
 }
 
-function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d || data)); }
-
-function generateId() { return (data.nextId++).toString(); }
-
-function getClient(phone) { return data.clients.find(function(c) { return c.phone === phone; }); }
-
-function updateClient(phone, updates) {
-for (var i = 0; i < data.clients.length; i++) {
-if (data.clients[i].phone === phone) {
-data.clients[i] = Object.assign({}, data.clients[i], updates);
-saveData(data);
-return true;
-}
-}
-return false;
-}
-
-function addClient(phone, password, name, ref) {
-if (getClient(phone)) return false;
-var refCode = 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
-var client = {
-id: generateId(),
-phone: phone,
-password: password,
-name: name || phone,
-refCode: refCode,
-referredBy: ref || '',
-balance: 4000,
-totalInvested: 0,
-totalProfit: 0,
-totalWithdrawn: 0,
-referralBonus: 0,
-referrals: [],
-products: [],
-activities: [{action:'Registration Bonus',detail:'UGX 4,000',status:'successful',date:new Date().toISOString()}],
-lastWithdrawal: null,
-hasDeposited: false,
-hasInvested: false,
-firstInvestmentDate: null,
-todayEarnings: 0,
-lastEarningDate: null,
-createdAt: new Date().toISOString()
-};
-
-// Handle referral
-if (ref) {
-for (var i = 0; i < data.clients.length; i++) {
-if (data.clients[i].refCode === ref) {
-if (!data.clients[i].referrals) data.clients[i].referrals = [];
-data.clients[i].referrals.push(phone);
-updateClient(data.clients[i].phone, { referrals: data.clients[i].referrals });
-break;
-}
-}
-}
-
-data.activeUsers = (data.activeUsers || ACTIVE_USERS_START) + 1;
-data.clients.push(client);
-saveData(data);
-return true;
-}
-
-function showToast(msg, type) {
-type = type || 'info';
-var old = document.querySelector('.toast');
-if (old) old.remove();
-var toast = document.createElement('div');
-toast.className = 'toast ' + type;
-toast.textContent = msg;
-document.body.appendChild(toast);
-setTimeout(function() { toast.remove(); }, 4000);
+function generateRefCode() {
+    return 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
 
 function getTier(totalInvested) {
-if (totalInvested >= 5000000) return 'VIP 5';
-if (totalInvested >= 2000000) return 'VIP 4';
-if (totalInvested >= 500000) return 'VIP 3';
-if (totalInvested >= 200000) return 'VIP 2';
-return 'VIP 1';
+    if (totalInvested >= 5000000) return 'VIP 5';
+    if (totalInvested >= 2000000) return 'VIP 4';
+    if (totalInvested >= 500000) return 'VIP 3';
+    if (totalInvested >= 200000) return 'VIP 2';
+    return 'VIP 1';
 }
 
-// PASSWORD TOGGLE
-function setupPasswordToggle(inputId, toggleId) {
-var input = document.getElementById(inputId);
-var toggle = document.getElementById(toggleId);
-if (!input || !toggle) return;
-toggle.addEventListener('click', function() {
-if (input.type === 'password') {
-input.type = 'text';
-this.textContent = '🙈';
-} else {
-input.type = 'password';
-this.textContent = '👁️';
+function showToast(msg, type) {
+    type = type || 'info';
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 4000);
 }
-});
+
+// ============================================================
+// FIREBASE DATA OPERATIONS
+// ============================================================
+
+// --- CLIENTS ---
+async function loadClients() {
+    try {
+        const snapshot = await db.collection('clients').orderBy('createdAt', 'desc').get();
+        allClients = [];
+        snapshot.forEach(doc => {
+            allClients.push({ id: doc.id, ...doc.data() });
+        });
+        activeUsersCount = allClients.length;
+        return allClients;
+    } catch (e) {
+        console.error('Error loading clients:', e);
+        return [];
+    }
+}
+
+async function addClientToFirebase(clientData) {
+    try {
+        const docRef = await db.collection('clients').add(clientData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error adding client:', e);
+        return null;
+    }
+}
+
+async function updateClientInFirebase(clientId, updates) {
+    try {
+        await db.collection('clients').doc(clientId).update(updates);
+        return true;
+    } catch (e) {
+        console.error('Error updating client:', e);
+        return false;
+    }
+}
+
+async function getClientByPhone(phone) {
+    await loadClients();
+    return allClients.find(c => c.phone === phone) || null;
+}
+
+// --- DEPOSITS ---
+async function loadDeposits() {
+    try {
+        const snapshot = await db.collection('deposits').orderBy('date', 'desc').get();
+        allDeposits = [];
+        snapshot.forEach(doc => {
+            allDeposits.push({ id: doc.id, ...doc.data() });
+        });
+        return allDeposits;
+    } catch (e) {
+        console.error('Error loading deposits:', e);
+        return [];
+    }
+}
+
+async function addDepositToFirebase(depositData) {
+    try {
+        const docRef = await db.collection('deposits').add(depositData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error adding deposit:', e);
+        return null;
+    }
+}
+
+async function updateDepositInFirebase(depositId, updates) {
+    try {
+        await db.collection('deposits').doc(depositId).update(updates);
+        return true;
+    } catch (e) {
+        console.error('Error updating deposit:', e);
+        return false;
+    }
+}
+
+// --- WITHDRAWALS ---
+async function loadWithdrawals() {
+    try {
+        const snapshot = await db.collection('withdrawals').orderBy('date', 'desc').get();
+        allWithdrawals = [];
+        snapshot.forEach(doc => {
+            allWithdrawals.push({ id: doc.id, ...doc.data() });
+        });
+        return allWithdrawals;
+    } catch (e) {
+        console.error('Error loading withdrawals:', e);
+        return [];
+    }
+}
+
+async function addWithdrawalToFirebase(withdrawalData) {
+    try {
+        const docRef = await db.collection('withdrawals').add(withdrawalData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error adding withdrawal:', e);
+        return null;
+    }
+}
+
+async function updateWithdrawalInFirebase(withdrawalId, updates) {
+    try {
+        await db.collection('withdrawals').doc(withdrawalId).update(updates);
+        return true;
+    } catch (e) {
+        console.error('Error updating withdrawal:', e);
+        return false;
+    }
+}
+
+// --- MESSAGES ---
+async function loadMessages() {
+    try {
+        const snapshot = await db.collection('messages').orderBy('date', 'asc').get();
+        allMessages = [];
+        snapshot.forEach(doc => {
+            allMessages.push({ id: doc.id, ...doc.data() });
+        });
+        return allMessages;
+    } catch (e) {
+        console.error('Error loading messages:', e);
+        return [];
+    }
+}
+
+async function addMessageToFirebase(messageData) {
+    try {
+        const docRef = await db.collection('messages').add(messageData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error adding message:', e);
+        return null;
+    }
+}
+
+// --- CONTACTS ---
+async function loadContacts() {
+    try {
+        const snapshot = await db.collection('contacts').get();
+        allContacts = [];
+        snapshot.forEach(doc => {
+            allContacts.push({ id: doc.id, ...doc.data() });
+        });
+        return allContacts;
+    } catch (e) {
+        console.error('Error loading contacts:', e);
+        return [];
+    }
+}
+
+async function addContactToFirebase(contactData) {
+    try {
+        const docRef = await db.collection('contacts').add(contactData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error adding contact:', e);
+        return null;
+    }
+}
+
+async function updateContactInFirebase(contactId, updates) {
+    try {
+        await db.collection('contacts').doc(contactId).update(updates);
+        return true;
+    } catch (e) {
+        console.error('Error updating contact:', e);
+        return false;
+    }
+}
+
+async function deleteContactFromFirebase(contactId) {
+    try {
+        await db.collection('contacts').doc(contactId).delete();
+        return true;
+    } catch (e) {
+        console.error('Error deleting contact:', e);
+        return false;
+    }
+}
+
+// --- ADMINS ---
+async function loadAdmins() {
+    try {
+        const snapshot = await db.collection('admins').get();
+        allAdmins = [];
+        snapshot.forEach(doc => {
+            allAdmins.push({ id: doc.id, ...doc.data() });
+        });
+        return allAdmins;
+    } catch (e) {
+        console.error('Error loading admins:', e);
+        return [];
+    }
+}
+
+async function addAdminToFirebase(adminData) {
+    try {
+        const docRef = await db.collection('admins').add(adminData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error adding admin:', e);
+        return null;
+    }
+}
+
+async function deleteAdminFromFirebase(adminId) {
+    try {
+        await db.collection('admins').doc(adminId).delete();
+        return true;
+    } catch (e) {
+        console.error('Error deleting admin:', e);
+        return false;
+    }
+}
+
+// --- SYSTEM STATS ---
+async function loadSystemStats() {
+    try {
+        const doc = await db.collection('system').doc('stats').get();
+        if (doc.exists) {
+            return doc.data();
+        }
+        return { activeUsers: 673 };
+    } catch (e) {
+        console.error('Error loading stats:', e);
+        return { activeUsers: 673 };
+    }
+}
+
+async function updateSystemStats(updates) {
+    try {
+        await db.collection('system').doc('stats').set(updates, { merge: true });
+        return true;
+    } catch (e) {
+        console.error('Error updating stats:', e);
+        return false;
+    }
+}
+
+// ============================================================
+// PASSWORD TOGGLE
+// ============================================================
+function setupPasswordToggle(inputId, toggleId) {
+    var input = document.getElementById(inputId);
+    var toggle = document.getElementById(toggleId);
+    if (!input || !toggle) return;
+    toggle.addEventListener('click', function() {
+        if (input.type === 'password') {
+            input.type = 'text';
+            this.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            this.textContent = '👁️';
+        }
+    });
 }
 setupPasswordToggle('clientRegPass', 'toggleRegPass');
 setupPasswordToggle('clientLoginPass', 'toggleLoginPass');
 setupPasswordToggle('adminLoginPass', 'toggleAdminPass');
 
+// ============================================================
 // NAVIGATION
+// ============================================================
 var pages = {
-home: document.getElementById('page-home'),
-'client-login': document.getElementById('page-client-login'),
-'client-register': document.getElementById('page-client-register'),
-'client-dashboard': document.getElementById('page-client-dashboard'),
-'client-products': document.getElementById('page-client-products'),
-'client-myitems': document.getElementById('page-client-myitems'),
-'client-messages': document.getElementById('page-client-messages'),
-'client-referral': document.getElementById('page-client-referral'),
-'client-profile': document.getElementById('page-client-profile'),
-'client-deposit': document.getElementById('page-client-deposit'),
-'client-withdraw': document.getElementById('page-client-withdraw'),
-'admin-login': document.getElementById('page-admin-login'),
-'admin-dashboard': document.getElementById('page-admin-dashboard')
+    home: document.getElementById('page-home'),
+    'client-login': document.getElementById('page-client-login'),
+    'client-register': document.getElementById('page-client-register'),
+    'client-dashboard': document.getElementById('page-client-dashboard'),
+    'client-products': document.getElementById('page-client-products'),
+    'client-myitems': document.getElementById('page-client-myitems'),
+    'client-messages': document.getElementById('page-client-messages'),
+    'client-referral': document.getElementById('page-client-referral'),
+    'client-profile': document.getElementById('page-client-profile'),
+    'client-deposit': document.getElementById('page-client-deposit'),
+    'client-withdraw': document.getElementById('page-client-withdraw'),
+    'admin-login': document.getElementById('page-admin-login'),
+    'admin-dashboard': document.getElementById('page-admin-dashboard')
 };
 
 function navigate(pageId) {
-if (pageId === 'client-dashboard' || pageId === 'client-products' ||
-pageId === 'client-myitems' || pageId === 'client-messages' ||
-pageId === 'client-referral' || pageId === 'client-profile' ||
-pageId === 'client-deposit' || pageId === 'client-withdraw') {
-if (!currentClient) { navigate('client-login'); return; }
-if (!getClient(currentClient)) { currentClient = null; navigate('home'); return; }
-}
-if (pageId === 'admin-dashboard' && !isAdmin) { navigate('admin-login'); return; }
+    if (pageId === 'client-dashboard' || pageId === 'client-products' ||
+        pageId === 'client-myitems' || pageId === 'client-messages' ||
+        pageId === 'client-referral' || pageId === 'client-profile' ||
+        pageId === 'client-deposit' || pageId === 'client-withdraw') {
+        if (!currentClient) { navigate('client-login'); return; }
+    }
+    if (pageId === 'admin-dashboard' && !isAdmin) { navigate('admin-login'); return; }
 
-for (var key in pages) {
-if (pages.hasOwnProperty(key)) {
-pages[key].classList.remove('active');
-}
-}
-var target = pages[pageId];
-if (target) {
-target.classList.add('active');
-if (pageId === 'client-dashboard') renderDashboard();
-if (pageId === 'client-products') renderProducts();
-if (pageId === 'client-myitems') renderMyItems();
-if (pageId === 'client-messages') renderMessages();
-if (pageId === 'client-referral') renderReferral();
-if (pageId === 'client-profile') renderProfile();
-if (pageId === 'client-deposit') { renderDeposit(); }
-if (pageId === 'client-withdraw') renderWithdraw();
-if (pageId === 'admin-dashboard') renderAdminDashboard();
-if (pageId === 'home') updateHomeStats();
-updateNav(pageId);
-window.scrollTo(0, 0);
-}
-window.location.hash = pageId;
+    for (var key in pages) {
+        if (pages.hasOwnProperty(key)) {
+            pages[key].classList.remove('active');
+        }
+    }
+    var target = pages[pageId];
+    if (target) {
+        target.classList.add('active');
+        if (pageId === 'client-dashboard') renderDashboard();
+        if (pageId === 'client-products') renderProducts();
+        if (pageId === 'client-myitems') renderMyItems();
+        if (pageId === 'client-messages') renderMessages();
+        if (pageId === 'client-referral') renderReferral();
+        if (pageId === 'client-profile') renderProfile();
+        if (pageId === 'client-deposit') { renderDeposit(); }
+        if (pageId === 'client-withdraw') renderWithdraw();
+        if (pageId === 'admin-dashboard') renderAdminDashboard();
+        if (pageId === 'home') updateHomeStats();
+        updateNav(pageId);
+        window.scrollTo(0, 0);
+    }
+    window.location.hash = pageId;
 }
 
 function updateNav(pageId) {
-var items = document.querySelectorAll('.nav-item');
-for (var i = 0; i < items.length; i++) {
-items[i].classList.toggle('active', items[i].dataset.nav === pageId);
-}
-var adminBtn = document.getElementById('adminNavBtn');
-adminBtn.classList.toggle('hidden', !isAdmin);
+    var items = document.querySelectorAll('.nav-item');
+    for (var i = 0; i < items.length; i++) {
+        items[i].classList.toggle('active', items[i].dataset.nav === pageId);
+    }
+    var adminBtn = document.getElementById('adminNavBtn');
+    adminBtn.classList.toggle('hidden', !isAdmin);
 }
 
 document.addEventListener('click', function(e) {
-var target = e.target.closest('[data-nav]');
-if (target) { e.preventDefault(); navigate(target.dataset.nav); }
+    var target = e.target.closest('[data-nav]');
+    if (target) { e.preventDefault(); navigate(target.dataset.nav); }
 });
 
 var quickActions = document.querySelectorAll('.quick-action');
 for (var q = 0; q < quickActions.length; q++) {
-quickActions[q].addEventListener('click', function() {
-var nav = this.dataset.nav;
-if (nav) navigate(nav);
-});
+    quickActions[q].addEventListener('click', function() {
+        var nav = this.dataset.nav;
+        if (nav) navigate(nav);
+    });
 }
 
 window.addEventListener('hashchange', function() {
-var hash = window.location.hash.replace('#', '');
-if (hash && pages[hash]) navigate(hash);
+    var hash = window.location.hash.replace('#', '');
+    if (hash && pages[hash]) navigate(hash);
 });
 
+// ============================================================
 // AUTH
-document.getElementById('clientRegisterForm').addEventListener('submit', function(e) {
-e.preventDefault();
-var name = document.getElementById('clientRegName').value.trim();
-var phone = document.getElementById('clientRegPhone').value.trim();
-var pass = document.getElementById('clientRegPass').value.trim();
-var ref = document.getElementById('clientRegRef').value.trim();
-var msg = document.getElementById('clientRegMsg');
+// ============================================================
+document.getElementById('clientRegisterForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('clientRegName').value.trim();
+    var phone = document.getElementById('clientRegPhone').value.trim();
+    var pass = document.getElementById('clientRegPass').value.trim();
+    var ref = document.getElementById('clientRegRef').value.trim();
+    var msg = document.getElementById('clientRegMsg');
 
-if (!name || !phone || !pass) { msg.textContent = 'Please fill all required fields.'; return; }
-if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
-msg.textContent = 'Please enter a valid 10-digit phone number.';
-return;
-}
-if (pass.length < 4) { msg.textContent = 'Password must be at least 4 characters.'; return; }
-if (getClient(phone)) { msg.textContent = 'Phone already registered.'; return; }
+    if (!name || !phone || !pass) { msg.textContent = 'Please fill all required fields.'; return; }
+    if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
+        msg.textContent = 'Please enter a valid 10-digit phone number.';
+        return;
+    }
+    if (pass.length < 4) { msg.textContent = 'Password must be at least 4 characters.'; return; }
 
-addClient(phone, pass, name, ref);
-msg.style.color = '#2ecc71';
-msg.textContent = '✅ Registration successful! You received UGX 4,000 bonus!';
-setTimeout(function() { navigate('client-login'); }, 1500);
+    // Check if phone already exists
+    await loadClients();
+    if (allClients.find(c => c.phone === phone)) {
+        msg.textContent = 'Phone already registered.';
+        return;
+    }
+
+    var refCode = generateRefCode();
+    var clientData = {
+        name: name,
+        phone: phone,
+        password: pass,
+        refCode: refCode,
+        referredBy: ref || '',
+        balance: 4000,
+        totalInvested: 0,
+        totalProfit: 0,
+        totalWithdrawn: 0,
+        referralBonus: 0,
+        referrals: [],
+        products: [],
+        activities: [{action:'Registration Bonus',detail:'UGX 4,000',status:'successful',date:new Date().toISOString()}],
+        lastWithdrawal: null,
+        hasDeposited: false,
+        hasInvested: false,
+        firstInvestmentDate: null,
+        todayEarnings: 0,
+        lastEarningDate: null,
+        createdAt: new Date().toISOString()
+    };
+
+    // Handle referral - add to referrer's referrals list
+    if (ref) {
+        await loadClients();
+        var referrer = allClients.find(c => c.refCode === ref);
+        if (referrer) {
+            if (!referrer.referrals) referrer.referrals = [];
+            referrer.referrals.push(phone);
+            await updateClientInFirebase(referrer.id, { referrals: referrer.referrals });
+        }
+    }
+
+    var clientId = await addClientToFirebase(clientData);
+    if (clientId) {
+        // Update active users count
+        var stats = await loadSystemStats();
+        var newCount = (stats.activeUsers || 673) + 1;
+        await updateSystemStats({ activeUsers: newCount });
+        activeUsersCount = newCount;
+
+        msg.style.color = '#2ecc71';
+        msg.textContent = '✅ Registration successful! You received UGX 4,000 bonus!';
+        setTimeout(function() { navigate('client-login'); }, 1500);
+    } else {
+        msg.textContent = 'Registration failed. Please try again.';
+    }
 });
 
-document.getElementById('clientLoginForm').addEventListener('submit', function(e) {
-e.preventDefault();
-var phone = document.getElementById('clientLoginPhone').value.trim();
-var pass = document.getElementById('clientLoginPass').value.trim();
-var msg = document.getElementById('clientLoginMsg');
+document.getElementById('clientLoginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var phone = document.getElementById('clientLoginPhone').value.trim();
+    var pass = document.getElementById('clientLoginPass').value.trim();
+    var msg = document.getElementById('clientLoginMsg');
 
-if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
-msg.textContent = 'Please enter a valid 10-digit phone number.';
-return;
-}
+    if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
+        msg.textContent = 'Please enter a valid 10-digit phone number.';
+        return;
+    }
 
-var client = getClient(phone);
-if (!client || client.password !== pass) {
-msg.textContent = 'Invalid phone or password.';
-return;
-}
-currentClient = phone;
-isAdmin = false;
-msg.textContent = '';
-navigate('client-dashboard');
-showToast('Welcome back, ' + client.name + '! 👋', 'success');
+    await loadClients();
+    var client = allClients.find(c => c.phone === phone);
+    if (!client || client.password !== pass) {
+        msg.textContent = 'Invalid phone or password.';
+        return;
+    }
+    currentClient = phone;
+    isAdmin = false;
+    msg.textContent = '';
+    navigate('client-dashboard');
+    showToast('Welcome back, ' + client.name + '! 👋', 'success');
 });
 
-document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
-e.preventDefault();
-var name = document.getElementById('adminName').value.trim();
-var user = document.getElementById('adminLoginUser').value.trim();
-var pass = document.getElementById('adminLoginPass').value.trim();
-var msg = document.getElementById('adminLoginMsg');
+document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('adminName').value.trim();
+    var user = document.getElementById('adminLoginUser').value.trim();
+    var pass = document.getElementById('adminLoginPass').value.trim();
+    var msg = document.getElementById('adminLoginMsg');
 
-var admin = null;
-for (var a = 0; a < data.admins.length; a++) {
-if (data.admins[a].username === user && data.admins[a].password === pass) {
-admin = data.admins[a];
-break;
-}
-}
-if (admin) {
-isAdmin = true;
-currentAdminName = name || admin.name;
-currentClient = null;
-msg.textContent = '';
-navigate('admin-dashboard');
-showToast('Welcome Admin ' + currentAdminName + '! 🔐', 'success');
-} else {
-msg.textContent = 'Invalid admin credentials.';
-}
+    await loadAdmins();
+    var admin = allAdmins.find(a => a.username === user && a.password === pass);
+    if (admin) {
+        isAdmin = true;
+        currentAdminName = name || admin.name;
+        currentClient = null;
+        msg.textContent = '';
+        navigate('admin-dashboard');
+        showToast('Welcome Admin ' + currentAdminName + '! 🔐', 'success');
+    } else {
+        // Check default admin
+        if (user === 'admin' && pass === 'admin123') {
+            // Create default admin if not exists
+            var defaultAdmin = allAdmins.find(a => a.username === 'admin');
+            if (!defaultAdmin) {
+                await addAdminToFirebase({ name: 'Super Admin', username: 'admin', password: 'admin123' });
+            }
+            isAdmin = true;
+            currentAdminName = name || 'Super Admin';
+            currentClient = null;
+            msg.textContent = '';
+            navigate('admin-dashboard');
+            showToast('Welcome Admin ' + currentAdminName + '! 🔐', 'success');
+        } else {
+            msg.textContent = 'Invalid admin credentials.';
+        }
+    }
 });
 
 document.getElementById('clientLogoutBtn').addEventListener('click', function() {
-currentClient = null;
-isAdmin = false;
-navigate('home');
-showToast('Logged out.', 'info');
+    currentClient = null;
+    isAdmin = false;
+    navigate('home');
+    showToast('Logged out.', 'info');
 });
 
 document.getElementById('adminLogoutBtn').addEventListener('click', function() {
-isAdmin = false;
-navigate('home');
-showToast('Admin logged out.', 'info');
+    isAdmin = false;
+    navigate('home');
+    showToast('Admin logged out.', 'info');
 });
 
+// ============================================================
 // WELCOME MODAL
-var modalShown = localStorage.getItem('cashx_welcome_shown_v10');
+// ============================================================
+var modalShown = localStorage.getItem('cashx_welcome_shown_v11');
 if (!modalShown) {
-document.getElementById('welcomeModal').classList.remove('hidden');
+    document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
-document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown_v10', 'true');
+    document.getElementById('welcomeModal').classList.add('hidden');
+    localStorage.setItem('cashx_welcome_shown_v11', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
-document.getElementById('welcomeModal').classList.add('hidden');
-localStorage.setItem('cashx_welcome_shown_v10', 'true');
+    document.getElementById('welcomeModal').classList.add('hidden');
+    localStorage.setItem('cashx_welcome_shown_v11', 'true');
 });
 
+// ============================================================
 // WHATSAPP
-function updateWhatsAppButton() {
-var btn = document.getElementById('whatsappFloatBtn');
-if (data.whatsapp) {
-btn.href = 'https://wa.me/256' + data.whatsapp.replace(/\D/g, '');
-}
+// ============================================================
+async function updateWhatsAppButton() {
+    await loadContacts();
+    var whatsapp = allContacts.length > 0 ? allContacts[0].number : '0704072227';
+    var btn = document.getElementById('whatsappFloatBtn');
+    btn.href = 'https://wa.me/256' + whatsapp.replace(/\D/g, '');
 }
 updateWhatsAppButton();
 
+// ============================================================
 // HOME STATS
-function updateHomeStats() {
-var totalClients = data.clients.length;
-var activeUsers = data.activeUsers || ACTIVE_USERS_START;
-document.getElementById('homeUsers').textContent = activeUsers;
+// ============================================================
+async function updateHomeStats() {
+    await loadClients();
+    var stats = await loadSystemStats();
+    var activeUsers = stats.activeUsers || 673;
+    document.getElementById('homeUsers').textContent = activeUsers;
 
-var totalInv = 0, totalProf = 0;
-for (var c = 0; c < data.clients.length; c++) {
-totalInv += (data.clients[c].totalInvested || 0);
-totalProf += (data.clients[c].totalProfit || 0);
-}
-document.getElementById('homeInvested').textContent = 'UGX ' + totalInv.toLocaleString();
-document.getElementById('homeProfit').textContent = 'UGX ' + totalProf.toLocaleString();
+    var totalInv = 0, totalProf = 0;
+    for (var c = 0; c < allClients.length; c++) {
+        totalInv += (allClients[c].totalInvested || 0);
+        totalProf += (allClients[c].totalProfit || 0);
+    }
+    document.getElementById('homeInvested').textContent = 'UGX ' + totalInv.toLocaleString();
+    document.getElementById('homeProfit').textContent = 'UGX ' + totalProf.toLocaleString();
 }
 
+// ============================================================
 // DAILY EARNINGS
-function processDailyEarnings() {
-var now = new Date();
-for (var c = 0; c < data.clients.length; c++) {
-var client = data.clients[c];
-if (client.products && client.products.length > 0) {
-var todayEarnings = 0;
-for (var p = 0; p < client.products.length; p++) {
-var product = client.products[p];
-if (product.status === 'active') {
-var lastEarning = product.lastEarning || product.purchaseDate;
-var lastDate = new Date(lastEarning);
-var hoursDiff = (now - lastDate) / (1000 * 60 * 60);
+// ============================================================
+async function processDailyEarnings() {
+    var now = new Date();
+    await loadClients();
+    for (var c = 0; c < allClients.length; c++) {
+        var client = allClients[c];
+        if (client.products && client.products.length > 0) {
+            var todayEarnings = 0;
+            var updated = false;
+            for (var p = 0; p < client.products.length; p++) {
+                var product = client.products[p];
+                if (product.status === 'active') {
+                    var lastEarning = product.lastEarning || product.purchaseDate;
+                    var lastDate = new Date(lastEarning);
+                    var hoursDiff = (now - lastDate) / (1000 * 60 * 60);
 
-if (hoursDiff >= 24) {
-var earning = product.daily;
-todayEarnings += earning;
-var newBalance = (client.balance || 0) + earning;
-var newProfit = (client.totalProfit || 0) + earning;
+                    if (hoursDiff >= 24) {
+                        var earning = product.daily;
+                        todayEarnings += earning;
+                        product.balance = (product.balance || 0) + earning;
+                        product.dailyEarned = (product.dailyEarned || 0) + earning;
+                        product.lastEarning = now.toISOString();
+                        updated = true;
 
-updateClient(client.phone, {
-balance: newBalance,
-totalProfit: newProfit
-});
-
-product.lastEarning = now.toISOString();
-product.dailyEarned = (product.dailyEarned || 0) + earning;
-
-if (!client.activities) client.activities = [];
-client.activities.push({
-action: 'Daily Earnings from ' + product.name,
-detail: 'UGX ' + earning.toLocaleString(),
-status: 'successful',
-date: now.toISOString()
-});
-saveData(data);
-}
-}
-}
-if (todayEarnings > 0) {
-updateClient(client.phone, {
-todayEarnings: (client.todayEarnings || 0) + todayEarnings,
-lastEarningDate: now.toISOString()
-});
-}
-}
-}
+                        if (!client.activities) client.activities = [];
+                        client.activities.push({
+                            action: 'Daily Earnings from ' + product.name,
+                            detail: 'UGX ' + earning.toLocaleString(),
+                            status: 'successful',
+                            date: now.toISOString()
+                        });
+                    }
+                }
+            }
+            if (updated) {
+                client.balance = (client.balance || 0) + todayEarnings;
+                client.totalProfit = (client.totalProfit || 0) + todayEarnings;
+                client.todayEarnings = (client.todayEarnings || 0) + todayEarnings;
+                client.lastEarningDate = now.toISOString();
+                await updateClientInFirebase(client.id, {
+                    balance: client.balance,
+                    totalProfit: client.totalProfit,
+                    todayEarnings: client.todayEarnings,
+                    lastEarningDate: client.lastEarningDate,
+                    products: client.products,
+                    activities: client.activities
+                });
+            }
+        }
+    }
 }
 
 setInterval(processDailyEarnings, 60 * 60 * 1000);
 setTimeout(processDailyEarnings, 5000);
 
+// ============================================================
 // RENDER DASHBOARD
-function renderDashboard() {
-var client = getClient(currentClient);
-if (!client) return;
+// ============================================================
+async function renderDashboard() {
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return;
 
-var tier = getTier(client.totalInvested || 0);
-document.getElementById('clientTierDisplay').textContent = tier;
-document.getElementById('clientBalanceDisplay').textContent = 'UGX ' + client.balance.toLocaleString();
-document.getElementById('clientTotalInvested').textContent = 'UGX ' + (client.totalInvested || 0).toLocaleString();
-document.getElementById('clientTotalProfit').textContent = 'UGX ' + (client.totalProfit || 0).toLocaleString();
-document.getElementById('clientWithdrawn').textContent = 'UGX ' + (client.totalWithdrawn || 0).toLocaleString();
-document.getElementById('clientReferrals').textContent = (client.referrals || []).length;
-document.getElementById('todayEarnings').textContent = 'UGX ' + (client.todayEarnings || 0).toLocaleString();
+    var tier = getTier(client.totalInvested || 0);
+    document.getElementById('clientTierDisplay').textContent = tier;
+    document.getElementById('clientBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
+    document.getElementById('clientTotalInvested').textContent = 'UGX ' + (client.totalInvested || 0).toLocaleString();
+    document.getElementById('clientTotalProfit').textContent = 'UGX ' + (client.totalProfit || 0).toLocaleString();
+    document.getElementById('clientWithdrawn').textContent = 'UGX ' + (client.totalWithdrawn || 0).toLocaleString();
+    document.getElementById('clientReferrals').textContent = (client.referrals || []).length;
+    document.getElementById('todayEarnings').textContent = 'UGX ' + (client.todayEarnings || 0).toLocaleString();
 
-var container = document.getElementById('clientActiveProducts');
-var active = (client.products || []).filter(function(p) { return p.status === 'active'; });
-if (active.length === 0) {
-container.innerHTML = '<div class="text-muted">No active investments</div>';
-} else {
-var html = '';
-for (var i = 0; i < active.length; i++) {
-html += '<div class="list-item"><div class="info"><span class="name">' + active[i].name + '</span><span class="detail">💰 UGX ' + active[i].price.toLocaleString() + ' · 📈 +UGX ' + active[i].daily.toLocaleString() + '/day</span><span class="detail">📅 ' + new Date(active[i].purchaseDate).toLocaleDateString() + '</span></div><span class="badge-sm badge-success">Active</span></div>';
-}
-container.innerHTML = html;
+    var container = document.getElementById('clientActiveProducts');
+    var active = (client.products || []).filter(function(p) { return p.status === 'active'; });
+    if (active.length === 0) {
+        container.innerHTML = '<div class="text-muted">No active investments</div>';
+    } else {
+        var html = '';
+        for (var i = 0; i < active.length; i++) {
+            html += '<div class="list-item"><div class="info"><span class="name">' + active[i].name + '</span><span class="detail">💰 UGX ' + active[i].price.toLocaleString() + ' · 📈 +UGX ' + active[i].daily.toLocaleString() + '/day</span><span class="detail">📅 ' + new Date(active[i].purchaseDate).toLocaleDateString() + '</span></div><span class="badge-sm badge-success">Active</span></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    var activityContainer = document.getElementById('clientRecentActivity');
+    var activities = (client.activities || []).slice(-5).reverse();
+    if (activities.length === 0) {
+        activityContainer.innerHTML = '<div class="text-muted">No activity yet</div>';
+    } else {
+        var html2 = '';
+        for (var j = 0; j < activities.length; j++) {
+            var a = activities[j];
+            var statusClass = 'badge-warning';
+            if (a.status === 'successful') statusClass = 'badge-success';
+            else if (a.status === 'pending') statusClass = 'badge-warning';
+            else if (a.status === 'processing') statusClass = 'badge-primary';
+            html2 += '<div class="list-item" style="padding:10px 14px;"><div class="info"><span class="name">' + a.action + '</span><span class="detail">' + a.detail + ' · ' + new Date(a.date).toLocaleString() + '</span></div><span class="badge-sm ' + statusClass + '">' + (a.status || 'pending') + '</span></div>';
+        }
+        activityContainer.innerHTML = html2;
+    }
 }
 
-var activityContainer = document.getElementById('clientRecentActivity');
-var activities = (client.activities || []).slice(-5).reverse();
-if (activities.length === 0) {
-activityContainer.innerHTML = '<div class="text-muted">No activity yet</div>';
-} else {
-var html2 = '';
-for (var j = 0; j < activities.length; j++) {
-var a = activities[j];
-var statusClass = 'badge-warning';
-if (a.status === 'successful') statusClass = 'badge-success';
-else if (a.status === 'pending') statusClass = 'badge-warning';
-else if (a.status === 'processing') statusClass = 'badge-primary';
-html2 += '<div class="list-item" style="padding:10px 14px;"><div class="info"><span class="name">' + a.action + '</span><span class="detail">' + a.detail + ' · ' + new Date(a.date).toLocaleString() + '</span></div><span class="badge-sm ' + statusClass + '">' + (a.status || 'pending') + '</span></div>';
-}
-activityContainer.innerHTML = html2;
-}
-}
-
+// ============================================================
 // RENDER PRODUCTS
+// ============================================================
 function renderProducts() {
-var grid = document.getElementById('productGrid');
-var search = document.getElementById('productSearch').value.toLowerCase();
-var activeFilter = document.querySelector('.filter-btn.active');
-var filter = activeFilter ? activeFilter.dataset.filter : 'all';
+    var grid = document.getElementById('productGrid');
+    var search = document.getElementById('productSearch').value.toLowerCase();
+    var activeFilter = document.querySelector('.filter-btn.active');
+    var filter = activeFilter ? activeFilter.dataset.filter : 'all';
 
-var filtered = data.products.slice();
-if (filter !== 'all') {
-filtered = filtered.filter(function(p) { return p.brand === filter; });
-}
-if (search) {
-filtered = filtered.filter(function(p) { return p.name.toLowerCase().includes(search) || p.brand.toLowerCase().includes(search); });
-}
-filtered.sort(function(a, b) { return a.price - b.price; });
+    var filtered = PRODUCTS.slice();
+    if (filter !== 'all') {
+        filtered = filtered.filter(function(p) { return p.brand === filter; });
+    }
+    if (search) {
+        filtered = filtered.filter(function(p) { return p.name.toLowerCase().includes(search) || p.brand.toLowerCase().includes(search); });
+    }
+    filtered.sort(function(a, b) { return a.price - b.price; });
 
-if (filtered.length === 0) {
-grid.innerHTML = '<div class="text-muted" style="text-align:center;padding:40px 0;">No products found</div>';
-return;
-}
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="text-muted" style="text-align:center;padding:40px 0;">No products found</div>';
+        return;
+    }
 
-var html = '';
-for (var i = 0; i < filtered.length; i++) {
-var p = filtered[i];
-html += '<div class="product-row"><div class="info"><span class="name">' + p.icon + ' ' + p.name + '</span><span class="brand">' + p.brand + '</span><span class="price">UGX ' + p.price.toLocaleString() + '</span><span class="daily">+UGX ' + p.daily.toLocaleString() + ' / day</span><span class="duration">⏱ ' + p.duration + ' days</span></div><div class="actions"><span class="badge-status ' + (p.status === 'sold' ? 'sold' : 'available') + '">' + (p.status === 'sold' ? 'Sold out' : 'Available') + '</span>' + (p.status === 'available' ? '<button class="btn btn-sm btn-success buy-product" data-id="' + p.id + '">Buy now</button>' : '<button class="btn btn-sm btn-ghost" disabled>Sold out</button>') + '</div></div>';
-}
-grid.innerHTML = html;
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var p = filtered[i];
+        html += '<div class="product-row"><div class="info"><span class="name">' + p.icon + ' ' + p.name + '</span><span class="brand">' + p.brand + '</span><span class="price">UGX ' + p.price.toLocaleString() + '</span><span class="daily">+UGX ' + p.daily.toLocaleString() + ' / day</span><span class="duration">⏱ ' + p.duration + ' days</span></div><div class="actions"><span class="badge-status ' + (p.status === 'sold' ? 'sold' : 'available') + '">' + (p.status === 'sold' ? 'Sold out' : 'Available') + '</span>' + (p.status === 'available' ? '<button class="btn btn-sm btn-success buy-product" data-id="' + p.id + '">Buy now</button>' : '<button class="btn btn-sm btn-ghost" disabled>Sold out</button>') + '</div></div>';
+    }
+    grid.innerHTML = html;
 
-var buyBtns = grid.querySelectorAll('.buy-product');
-for (var b = 0; b < buyBtns.length; b++) {
-buyBtns[b].addEventListener('click', function() {
-var productId = this.dataset.id;
-var product = null;
-for (var pp = 0; pp < data.products.length; pp++) {
-if (data.products[pp].id === productId) { product = data.products[pp]; break; }
-}
-if (!product) return;
-var client = getClient(currentClient);
-if (!client) { showToast('Please login first', 'error'); return; }
-if (client.balance < product.price) {
-showToast('Insufficient balance! Need UGX ' + product.price.toLocaleString(), 'error');
-return;
-}
-if (confirm('Buy ' + product.name + ' for UGX ' + product.price.toLocaleString() + '? You\'ll earn UGX ' + product.daily.toLocaleString() + ' daily for ' + product.duration + ' days')) {
-var newBalance = client.balance - product.price;
-var totalProfit = product.daily * product.duration;
-var productEntry = JSON.parse(JSON.stringify(product));
-productEntry.purchaseDate = new Date().toISOString();
-productEntry.status = 'active';
-productEntry.totalProfit = totalProfit;
-productEntry.dailyEarned = 0;
-productEntry.lastEarning = new Date().toISOString();
+    var buyBtns = grid.querySelectorAll('.buy-product');
+    for (var b = 0; b < buyBtns.length; b++) {
+        buyBtns[b].addEventListener('click', async function() {
+            var productId = this.dataset.id;
+            var product = PRODUCTS.find(function(p) { return p.id === productId; });
+            if (!product) return;
+            await loadClients();
+            var client = allClients.find(c => c.phone === currentClient);
+            if (!client) { showToast('Please login first', 'error'); return; }
+            if ((client.balance || 0) < product.price) {
+                showToast('Insufficient balance! Need UGX ' + product.price.toLocaleString(), 'error');
+                return;
+            }
+            if (confirm('Buy ' + product.name + ' for UGX ' + product.price.toLocaleString() + '? You\'ll earn UGX ' + product.daily.toLocaleString() + ' daily for ' + product.duration + ' days')) {
+                var newBalance = (client.balance || 0) - product.price;
+                var totalProfit = product.daily * product.duration;
+                var productEntry = JSON.parse(JSON.stringify(product));
+                productEntry.purchaseDate = new Date().toISOString();
+                productEntry.status = 'active';
+                productEntry.totalProfit = totalProfit;
+                productEntry.dailyEarned = 0;
+                productEntry.lastEarning = new Date().toISOString();
+                productEntry.balance = 0;
 
-updateClient(currentClient, {
-balance: newBalance,
-totalInvested: (client.totalInvested || 0) + product.price,
-totalProfit: (client.totalProfit || 0) + totalProfit,
-hasInvested: true,
-firstInvestmentDate: client.firstInvestmentDate || new Date().toISOString()
-});
-var updated = getClient(currentClient);
-if (updated) {
-if (!updated.products) updated.products = [];
-updated.products.push(productEntry);
-if (!updated.activities) updated.activities = [];
-updated.activities.push({
-action: 'Bought ' + product.name,
-detail: 'UGX ' + product.price.toLocaleString(),
-status: 'successful',
-date: new Date().toISOString()
-});
-saveData(data);
-}
-renderDashboard();
-showToast('✅ You bought ' + product.name + '!', 'success');
-}
-});
-}
+                if (!client.products) client.products = [];
+                client.products.push(productEntry);
+                if (!client.activities) client.activities = [];
+                client.activities.push({
+                    action: 'Bought ' + product.name,
+                    detail: 'UGX ' + product.price.toLocaleString(),
+                    status: 'successful',
+                    date: new Date().toISOString()
+                });
+
+                await updateClientInFirebase(client.id, {
+                    balance: newBalance,
+                    totalInvested: (client.totalInvested || 0) + product.price,
+                    totalProfit: (client.totalProfit || 0) + totalProfit,
+                    hasInvested: true,
+                    firstInvestmentDate: client.firstInvestmentDate || new Date().toISOString(),
+                    products: client.products,
+                    activities: client.activities
+                });
+
+                renderDashboard();
+                showToast('✅ You bought ' + product.name + '!', 'success');
+            }
+        });
+    }
 }
 
 document.getElementById('productSearch').addEventListener('input', renderProducts);
 var filterBtns = document.querySelectorAll('.filter-btn');
 for (var fb = 0; fb < filterBtns.length; fb++) {
-filterBtns[fb].addEventListener('click', function() {
-var btns = document.querySelectorAll('.filter-btn');
-for (var b2 = 0; b2 < btns.length; b2++) { btns[b2].classList.remove('active'); }
-this.classList.add('active');
-renderProducts();
-});
+    filterBtns[fb].addEventListener('click', function() {
+        var btns = document.querySelectorAll('.filter-btn');
+        for (var b2 = 0; b2 < btns.length; b2++) { btns[b2].classList.remove('active'); }
+        this.classList.add('active');
+        renderProducts();
+    });
 }
 
+// ============================================================
 // RENDER MY ITEMS
-function renderMyItems() {
-var container = document.getElementById('myItemsList');
-var client = getClient(currentClient);
-if (!client) return;
+// ============================================================
+async function renderMyItems() {
+    var container = document.getElementById('myItemsList');
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return;
 
-var items = client.products || [];
-if (items.length === 0) {
-container.innerHTML = '<div class="text-muted">You haven\'t purchased any products yet</div>';
-return;
+    var items = client.products || [];
+    if (items.length === 0) {
+        container.innerHTML = '<div class="text-muted">You haven\'t purchased any products yet</div>';
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+        var p = items[i];
+        html += '<div class="list-item"><div class="info"><span class="name">' + p.icon + ' ' + p.name + '</span><span class="detail">💰 UGX ' + p.price.toLocaleString() + ' · 📈 +UGX ' + p.daily.toLocaleString() + '/day</span><span class="detail">⏱ ' + p.duration + ' days · ' + (p.status === 'active' ? '🟢 Active' : '🔴 Completed') + '</span><span class="detail">📅 ' + new Date(p.purchaseDate).toLocaleDateString() + '</span>' + (p.dailyEarned ? '<span class="detail">💰 Earned: UGX ' + p.dailyEarned.toLocaleString() + '</span>' : '') + '</div><span class="badge-sm ' + (p.status === 'active' ? 'badge-success' : '') + '">' + p.status + '</span></div>';
+    }
+    container.innerHTML = html;
 }
 
-var html = '';
-for (var i = 0; i < items.length; i++) {
-var p = items[i];
-html += '<div class="list-item"><div class="info"><span class="name">' + p.icon + ' ' + p.name + '</span><span class="detail">💰 UGX ' + p.price.toLocaleString() + ' · 📈 +UGX ' + p.daily.toLocaleString() + '/day</span><span class="detail">⏱ ' + p.duration + ' days · ' + (p.status === 'active' ? '🟢 Active' : '🔴 Completed') + '</span><span class="detail">📅 ' + new Date(p.purchaseDate).toLocaleDateString() + '</span>' + (p.dailyEarned ? '<span class="detail">💰 Earned: UGX ' + p.dailyEarned.toLocaleString() + '</span>' : '') + '</div><span class="badge-sm ' + (p.status === 'active' ? 'badge-success' : '') + '">' + p.status + '</span></div>';
-}
-container.innerHTML = html;
+// ============================================================
+// RENDER MESSAGES
+// ============================================================
+async function renderMessages() {
+    var container = document.getElementById('messageContainer');
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return;
+
+    await loadAdmins();
+    var adminNames = allAdmins.map(function(a) { return a.name; });
+    var randomAdmin = adminNames[Math.floor(Math.random() * adminNames.length)] || 'Support Team';
+    document.getElementById('adminNameDisplay').textContent = randomAdmin;
+
+    await loadMessages();
+    var clientMessages = allMessages.filter(function(m) { return m.clientPhone === currentClient; });
+    if (clientMessages.length === 0) {
+        container.innerHTML = '<div class="message-bubble"><div class="sender">' + randomAdmin + '</div><div class="text">Hello and welcome! 😊 I\'m here to help you with deposits, withdrawals, investments, and referral commission. What can I help you with today?</div><div class="time">Just now</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn btn-sm btn-outline quick-msg" data-msg="How do I deposit money?">💳 How do I deposit money?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="Why is my withdrawal pending?">🏦 Why is my withdrawal pending?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="Which product should I start with?">🛒 Which product should I start with?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="How does referral commission work?">👥 How does referral commission work?</button></div>';
+        var quickMsgs = container.querySelectorAll('.quick-msg');
+        for (var qm = 0; qm < quickMsgs.length; qm++) {
+            quickMsgs[qm].addEventListener('click', function() {
+                sendMessage(this.dataset.msg);
+            });
+        }
+        return;
+    }
+
+    var html = '';
+    for (var m = 0; m < clientMessages.length; m++) {
+        var msg = clientMessages[m];
+        html += '<div class="message-bubble" style="' + (msg.sender === 'client' ? 'border-color:rgba(46,204,113,0.2);' : 'border-color:rgba(231,76,60,0.2);') + '"><div class="sender">' + (msg.sender === 'client' ? 'You' : (msg.adminName || randomAdmin)) + '</div><div class="text">' + msg.text + '</div><div class="time">' + new Date(msg.date).toLocaleString() + '</div></div>';
+    }
+    container.innerHTML = html;
 }
 
-// RENDER MESSAGES (CLIENT SUPPORT)
-function renderMessages() {
-var container = document.getElementById('messageContainer');
-var client = getClient(currentClient);
-if (!client) return;
+async function sendMessage(text) {
+    if (!text || !currentClient) return;
+    await addMessageToFirebase({
+        clientPhone: currentClient,
+        sender: 'client',
+        text: text,
+        date: new Date().toISOString()
+    });
+    renderMessages();
 
-var adminNames = data.admins.map(function(a) { return a.name; });
-var randomAdmin = adminNames[Math.floor(Math.random() * adminNames.length)] || 'Support Team';
-document.getElementById('adminNameDisplay').textContent = randomAdmin;
-
-var clientMessages = data.messages.filter(function(m) { return m.clientPhone === currentClient; });
-if (clientMessages.length === 0) {
-container.innerHTML = '<div class="message-bubble"><div class="sender">' + randomAdmin + '</div><div class="text">Hello and welcome! 😊 I\'m here to help you with deposits, withdrawals, investments, and referral commission. What can I help you with today?</div><div class="time">Just now</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn btn-sm btn-outline quick-msg" data-msg="How do I deposit money?">💳 How do I deposit money?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="Why is my withdrawal pending?">🏦 Why is my withdrawal pending?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="Which product should I start with?">🛒 Which product should I start with?</button><button class="btn btn-sm btn-outline quick-msg" data-msg="How does referral commission work?">👥 How does referral commission work?</button></div>';
-var quickMsgs = container.querySelectorAll('.quick-msg');
-for (var qm = 0; qm < quickMsgs.length; qm++) {
-quickMsgs[qm].addEventListener('click', function() {
-sendMessage(this.dataset.msg);
-});
-}
-return;
-}
-
-var html = '';
-for (var m = 0; m < clientMessages.length; m++) {
-var msg = clientMessages[m];
-html += '<div class="message-bubble" style="' + (msg.sender === 'client' ? 'border-color:rgba(46,204,113,0.2);' : 'border-color:rgba(231,76,60,0.2);') + '"><div class="sender">' + (msg.sender === 'client' ? 'You' : (msg.adminName || randomAdmin)) + '</div><div class="text">' + msg.text + '</div><div class="time">' + new Date(msg.date).toLocaleString() + '</div></div>';
-}
-container.innerHTML = html;
-}
-
-function sendMessage(text) {
-if (!text || !currentClient) return;
-if (!data.messages) data.messages = [];
-data.messages.push({
-clientPhone: currentClient,
-sender: 'client',
-text: text,
-date: new Date().toISOString()
-});
-saveData(data);
-renderMessages();
-
-if (!isAdmin) {
-setTimeout(function() {
-var adminNames = data.admins.map(function(a) { return a.name; });
-var randomAdmin = adminNames[Math.floor(Math.random() * adminNames.length)] || 'Support Team';
-data.messages.push({
-clientPhone: currentClient,
-sender: 'support',
-adminName: randomAdmin,
-text: 'Thank you for your message. An admin will respond shortly.',
-date: new Date().toISOString()
-});
-saveData(data);
-renderMessages();
-showToast('📨 Message sent! Admin will reply soon.', 'success');
-}, 1000);
-}
+    if (!isAdmin) {
+        setTimeout(async function() {
+            await loadAdmins();
+            var adminNames = allAdmins.map(function(a) { return a.name; });
+            var randomAdmin = adminNames[Math.floor(Math.random() * adminNames.length)] || 'Support Team';
+            await addMessageToFirebase({
+                clientPhone: currentClient,
+                sender: 'support',
+                adminName: randomAdmin,
+                text: 'Thank you for your message. An admin will respond shortly.',
+                date: new Date().toISOString()
+            });
+            renderMessages();
+            showToast('📨 Message sent! Admin will reply soon.', 'success');
+        }, 1000);
+    }
 }
 
 document.getElementById('sendMessageBtn').addEventListener('click', function() {
-var input = document.getElementById('messageInput');
-var text = input.value.trim();
-if (text) {
-sendMessage(text);
-input.value = '';
-}
+    var input = document.getElementById('messageInput');
+    var text = input.value.trim();
+    if (text) {
+        sendMessage(text);
+        input.value = '';
+    }
 });
 
 document.getElementById('messageInput').addEventListener('keypress', function(e) {
-if (e.key === 'Enter') document.getElementById('sendMessageBtn').click();
+    if (e.key === 'Enter') document.getElementById('sendMessageBtn').click();
 });
 
+// ============================================================
 // RENDER REFERRAL
-function renderReferral() {
-var client = getClient(currentClient);
-if (!client) return;
-document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
-document.getElementById('referralCount').textContent = (client.referrals || []).length;
-document.getElementById('referralBonus').textContent = 'UGX ' + (client.referralBonus || 0).toLocaleString();
+// ============================================================
+async function renderReferral() {
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return;
+    document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
+    document.getElementById('referralCount').textContent = (client.referrals || []).length;
+    document.getElementById('referralBonus').textContent = 'UGX ' + (client.referralBonus || 0).toLocaleString();
 
-var activeCount = 0;
-if (client.referrals) {
-for (var r = 0; r < client.referrals.length; r++) {
-var refClient = getClient(client.referrals[r]);
-if (refClient && refClient.totalInvested > 0) activeCount++;
-}
-}
-document.getElementById('referralActive').textContent = activeCount;
+    var activeCount = 0;
+    if (client.referrals) {
+        for (var r = 0; r < client.referrals.length; r++) {
+            var refClient = allClients.find(c => c.phone === client.referrals[r]);
+            if (refClient && refClient.totalInvested > 0) activeCount++;
+        }
+    }
+    document.getElementById('referralActive').textContent = activeCount;
 }
 
 function getReferralLink() {
-var client = getClient(currentClient);
-if (!client) return '';
-return window.location.origin + window.location.pathname + '?ref=' + client.refCode;
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return '';
+    return window.location.origin + window.location.pathname + '?ref=' + client.refCode;
 }
 
 document.getElementById('copyReferralBtn').addEventListener('click', function() {
-var link = getReferralLink();
-if (!link) return;
-if (navigator.clipboard) {
-navigator.clipboard.writeText(link).then(function() {
-showToast('✅ Referral link copied!', 'success');
-}).catch(function() {
-fallbackCopy(link);
-});
-} else {
-fallbackCopy(link);
-}
+    var link = getReferralLink();
+    if (!link) return;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(function() {
+            showToast('✅ Referral link copied!', 'success');
+        }).catch(function() {
+            fallbackCopy(link);
+        });
+    } else {
+        fallbackCopy(link);
+    }
 });
 
 function fallbackCopy(text) {
-var textarea = document.createElement('textarea');
-textarea.value = text;
-document.body.appendChild(textarea);
-textarea.select();
-try {
-document.execCommand('copy');
-showToast('✅ Referral link copied!', 'success');
-} catch(e) {
-showToast('📋 Copy this link: ' + text, 'info');
-}
-document.body.removeChild(textarea);
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showToast('✅ Referral link copied!', 'success');
+    } catch(e) {
+        showToast('📋 Copy this link: ' + text, 'info');
+    }
+    document.body.removeChild(textarea);
 }
 
 document.getElementById('shareReferralBtn').addEventListener('click', function() {
-var link = getReferralLink();
-if (!link) return;
-if (navigator.share) {
-navigator.share({
-title: 'Join CASH X and earn daily!',
-text: 'Invest with CASH X and earn daily profits!',
-url: link
-}).catch(function() {});
-} else {
-showToast('📋 Share this link: ' + link, 'info');
-}
+    var link = getReferralLink();
+    if (!link) return;
+    if (navigator.share) {
+        navigator.share({
+            title: 'Join CASH X and earn daily!',
+            text: 'Invest with CASH X and earn daily profits!',
+            url: link
+        }).catch(function() {});
+    } else {
+        showToast('📋 Share this link: ' + link, 'info');
+    }
 });
 
-// RENDER PROFILE - Removed Member Since
-function renderProfile() {
-var client = getClient(currentClient);
-if (!client) return;
-var tier = getTier(client.totalInvested || 0);
-document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + client.balance.toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
+// ============================================================
+// RENDER PROFILE
+// ============================================================
+async function renderProfile() {
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return;
+    var tier = getTier(client.totalInvested || 0);
+    document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + (client.balance || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Referral Bonus</span><span class="value accent">UGX ' + (client.referralBonus || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
 }
 
+// ============================================================
 // RENDER DEPOSIT
-function renderDeposit() {
-var contacts = data.contacts;
-if (contacts.length === 0) {
-document.getElementById('currentAccountNumber').textContent = 'No accounts available';
-document.getElementById('currentAccountName').textContent = 'Contact admin';
-document.getElementById('currentAccountProvider').textContent = '';
-return;
-}
-var randomIndex = Math.floor(Math.random() * contacts.length);
-var account = contacts[randomIndex];
-document.getElementById('currentAccountNumber').textContent = account.number;
-document.getElementById('currentAccountName').textContent = account.name;
-document.getElementById('currentAccountProvider').textContent = account.type;
+// ============================================================
+async function renderDeposit() {
+    await loadContacts();
+    if (allContacts.length === 0) {
+        document.getElementById('currentAccountNumber').textContent = 'No accounts available';
+        document.getElementById('currentAccountName').textContent = 'Contact admin';
+        document.getElementById('currentAccountProvider').textContent = '';
+        return;
+    }
+    var randomIndex = Math.floor(Math.random() * allContacts.length);
+    var account = allContacts[randomIndex];
+    document.getElementById('currentAccountNumber').textContent = account.number;
+    document.getElementById('currentAccountName').textContent = account.name;
+    document.getElementById('currentAccountProvider').textContent = account.type;
 
-var client = getClient(currentClient);
-if (client) {
-document.getElementById('depositSender').value = client.phone;
-}
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (client) {
+        document.getElementById('depositSender').value = client.phone;
+    }
 }
 
 document.getElementById('refreshAccountBtn').addEventListener('click', function() {
-renderDeposit();
-showToast('🔄 New account number generated!', 'info');
+    renderDeposit();
+    showToast('🔄 New account number generated!', 'info');
 });
 
-document.getElementById('depositForm').addEventListener('submit', function(e) {
-e.preventDefault();
-var amount = parseInt(document.getElementById('depositAmount').value);
-var sender = document.getElementById('depositSender').value.trim();
-var name = document.getElementById('depositName').value.trim();
-var msg = document.getElementById('depositMsg');
+document.getElementById('depositForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var amount = parseInt(document.getElementById('depositAmount').value);
+    var sender = document.getElementById('depositSender').value.trim();
+    var name = document.getElementById('depositName').value.trim();
+    var msg = document.getElementById('depositMsg');
 
-var client = getClient(currentClient);
-if (!client) { msg.textContent = 'Please login first.'; return; }
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) { msg.textContent = 'Please login first.'; return; }
 
-if (!amount || amount < 15000) { msg.textContent = 'Minimum deposit is UGX 15,000'; return; }
-if (!sender || !name) { msg.textContent = 'Please fill all fields.'; return; }
-if (sender.length !== 10 || !/^[0-9]{10}$/.test(sender)) {
-msg.textContent = 'Please enter a valid 10-digit phone number.';
-return;
-}
-if (sender !== client.phone) {
-msg.textContent = '❌ You must deposit using your registered phone number!';
-return;
-}
+    if (!amount || amount < 15000) { msg.textContent = 'Minimum deposit is UGX 15,000'; return; }
+    if (!sender || !name) { msg.textContent = 'Please fill all fields.'; return; }
+    if (sender.length !== 10 || !/^[0-9]{10}$/.test(sender)) {
+        msg.textContent = 'Please enter a valid 10-digit phone number.';
+        return;
+    }
+    if (sender !== client.phone) {
+        msg.textContent = '❌ You must deposit using your registered phone number!';
+        return;
+    }
 
-data.deposits.push({
-id: generateId(),
-clientPhone: currentClient,
-amount: amount,
-sender: sender,
-name: name,
-status: 'pending',
-date: new Date().toISOString(),
-adminNotified: false
-});
-saveData(data);
+    await addDepositToFirebase({
+        clientPhone: currentClient,
+        amount: amount,
+        sender: sender,
+        name: name,
+        status: 'pending',
+        date: new Date().toISOString(),
+        adminNotified: false
+    });
 
-if (client) {
-if (!client.activities) client.activities = [];
-client.activities.push({
-action: 'Deposit Request',
-detail: 'UGX ' + amount.toLocaleString(),
-status: 'pending',
-date: new Date().toISOString()
-});
-saveData(data);
-}
+    if (!client.activities) client.activities = [];
+    client.activities.push({
+        action: 'Deposit Request',
+        detail: 'UGX ' + amount.toLocaleString(),
+        status: 'pending',
+        date: new Date().toISOString()
+    });
+    await updateClientInFirebase(client.id, { activities: client.activities });
 
-msg.style.color = '#2ecc71';
-msg.textContent = '✅ Deposit request submitted! Admin will confirm shortly.';
-document.getElementById('depositAmount').value = '';
-document.getElementById('depositName').value = '';
-showToast('📨 Deposit request sent!', 'success');
-setTimeout(renderDeposit, 500);
+    msg.style.color = '#2ecc71';
+    msg.textContent = '✅ Deposit request submitted! Admin will confirm shortly.';
+    document.getElementById('depositAmount').value = '';
+    document.getElementById('depositName').value = '';
+    showToast('📨 Deposit request sent!', 'success');
+    setTimeout(renderDeposit, 500);
 });
 
+// ============================================================
 // RENDER WITHDRAW
-function renderWithdraw() {
-var client = getClient(currentClient);
-if (client) {
-document.getElementById('withdrawBalanceDisplay').textContent = 'UGX ' + client.balance.toLocaleString();
-}
-var amountInput = document.getElementById('withdrawAmount');
-if (amountInput) {
-amountInput.addEventListener('input', updateFeeBreakdown);
-}
+// ============================================================
+async function renderWithdraw() {
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (client) {
+        document.getElementById('withdrawBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
+    }
+    var amountInput = document.getElementById('withdrawAmount');
+    if (amountInput) {
+        amountInput.addEventListener('input', updateFeeBreakdown);
+    }
 }
 
 function updateFeeBreakdown() {
-var amount = parseFloat(document.getElementById('withdrawAmount').value) || 0;
-var fee = Math.round(amount * 0.12);
-var final = amount - fee;
-document.getElementById('feeAmountDisplay').textContent = 'UGX ' + amount.toLocaleString();
-document.getElementById('feeDeductionDisplay').textContent = 'UGX ' + fee.toLocaleString();
-document.getElementById('feeFinalDisplay').textContent = 'UGX ' + final.toLocaleString();
+    var amount = parseFloat(document.getElementById('withdrawAmount').value) || 0;
+    var fee = Math.round(amount * 0.12);
+    var final = amount - fee;
+    document.getElementById('feeAmountDisplay').textContent = 'UGX ' + amount.toLocaleString();
+    document.getElementById('feeDeductionDisplay').textContent = 'UGX ' + fee.toLocaleString();
+    document.getElementById('feeFinalDisplay').textContent = 'UGX ' + final.toLocaleString();
 }
 
 document.getElementById('withdrawAmount').addEventListener('input', updateFeeBreakdown);
 
-document.getElementById('withdrawForm').addEventListener('submit', function(e) {
-e.preventDefault();
-var amount = parseInt(document.getElementById('withdrawAmount').value);
-var number = document.getElementById('withdrawNumber').value.trim();
-var network = document.getElementById('withdrawNetwork').value;
-var holderName = document.getElementById('withdrawHolderName').value.trim();
-var msg = document.getElementById('withdrawMsg');
+document.getElementById('withdrawForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var amount = parseInt(document.getElementById('withdrawAmount').value);
+    var number = document.getElementById('withdrawNumber').value.trim();
+    var network = document.getElementById('withdrawNetwork').value;
+    var holderName = document.getElementById('withdrawHolderName').value.trim();
+    var msg = document.getElementById('withdrawMsg');
 
-if (!currentClient) { msg.textContent = 'Please login first.'; return; }
-var client = getClient(currentClient);
-if (!client) return;
+    if (!currentClient) { msg.textContent = 'Please login first.'; return; }
+    await loadClients();
+    var client = allClients.find(c => c.phone === currentClient);
+    if (!client) return;
 
-if (!client.hasDeposited) {
-msg.textContent = '❌ You must deposit at least once before withdrawing!';
-return;
-}
-if (!client.hasInvested) {
-msg.textContent = '❌ You must invest in a product before withdrawing!';
-return;
-}
+    if (!client.hasDeposited) {
+        msg.textContent = '❌ You must deposit at least once before withdrawing!';
+        return;
+    }
+    if (!client.hasInvested) {
+        msg.textContent = '❌ You must invest in a product before withdrawing!';
+        return;
+    }
 
-if (client.firstInvestmentDate) {
-var investDate = new Date(client.firstInvestmentDate);
-var now = new Date();
-var hoursDiff = (now - investDate) / (1000 * 60 * 60);
-if (hoursDiff < 48) {
-msg.textContent = '❌ You must wait 48 hours after your first investment. ' + Math.ceil(48 - hoursDiff) + ' hours remaining.';
-return;
-}
-}
+    if (client.firstInvestmentDate) {
+        var investDate = new Date(client.firstInvestmentDate);
+        var now = new Date();
+        var hoursDiff = (now - investDate) / (1000 * 60 * 60);
+        if (hoursDiff < 48) {
+            msg.textContent = '❌ You must wait 48 hours after your first investment. ' + Math.ceil(48 - hoursDiff) + ' hours remaining.';
+            return;
+        }
+    }
 
-if (!amount || amount < 5000) { msg.textContent = 'Minimum withdrawal is UGX 5,000'; return; }
-if (!holderName) { msg.textContent = 'Please enter the account holder name.'; return; }
-if (number.length !== 10 || !/^[0-9]{10}$/.test(number)) {
-msg.textContent = 'Please enter a valid 10-digit phone number.';
-return;
-}
+    if (!amount || amount < 5000) { msg.textContent = 'Minimum withdrawal is UGX 5,000'; return; }
+    if (!holderName) { msg.textContent = 'Please enter the account holder name.'; return; }
+    if (number.length !== 10 || !/^[0-9]{10}$/.test(number)) {
+        msg.textContent = 'Please enter a valid 10-digit phone number.';
+        return;
+    }
 
-var fee = Math.round(amount * 0.12);
-var totalDeduct = amount + fee;
+    var fee = Math.round(amount * 0.12);
+    var totalDeduct = amount + fee;
 
-if (client.balance < totalDeduct) {
-msg.textContent = 'Insufficient balance! Need UGX ' + totalDeduct.toLocaleString() + ' (including ' + fee + ' fee)';
-return;
-}
+    if ((client.balance || 0) < totalDeduct) {
+        msg.textContent = 'Insufficient balance! Need UGX ' + totalDeduct.toLocaleString() + ' (including ' + fee + ' fee)';
+        return;
+    }
 
-// 48-hour cooldown after last withdrawal
-if (client.lastWithdrawal) {
-var last = new Date(client.lastWithdrawal);
-var now2 = new Date();
-var diff = (now2 - last) / (1000 * 60 * 60);
-if (diff < 48) {
-msg.textContent = 'You can only withdraw once every 48 hours (2 days). Please wait ' + Math.ceil(48 - diff) + ' more hours.';
-return;
-}
-}
+    if (client.lastWithdrawal) {
+        var last = new Date(client.lastWithdrawal);
+        var now2 = new Date();
+        var diff = (now2 - last) / (1000 * 60 * 60);
+        if (diff < 48) {
+            msg.textContent = 'You can only withdraw once every 48 hours (2 days). Please wait ' + Math.ceil(48 - diff) + ' more hours.';
+            return;
+        }
+    }
 
-if (confirm('Withdraw UGX ' + amount.toLocaleString() + ' to ' + number + '? Fee: UGX ' + fee.toLocaleString())) {
-var newBalance = client.balance - totalDeduct;
-updateClient(currentClient, {
-balance: newBalance,
-lastWithdrawal: new Date().toISOString(),
-totalWithdrawn: (client.totalWithdrawn || 0) + amount
+    if (confirm('Withdraw UGX ' + amount.toLocaleString() + ' to ' + number + '? Fee: UGX ' + fee.toLocaleString())) {
+        var newBalance = (client.balance || 0) - totalDeduct;
+        await updateClientInFirebase(client.id, {
+            balance: newBalance,
+            lastWithdrawal: new Date().toISOString(),
+            totalWithdrawn: (client.totalWithdrawn || 0) + amount
+        });
+
+        await addWithdrawalToFirebase({
+            clientPhone: currentClient,
+            amount: amount,
+            fee: fee,
+            number: number,
+            network: network,
+            holderName: holderName,
+            status: 'pending',
+            date: new Date().toISOString(),
+            adminNotified: false
+        });
+
+        var updatedClient = allClients.find(c => c.phone === currentClient);
+        if (updatedClient) {
+            if (!updatedClient.activities) updatedClient.activities = [];
+            updatedClient.activities.push({
+                action: 'Withdrawal Request',
+                detail: 'UGX ' + amount.toLocaleString(),
+                status: 'pending',
+                date: new Date().toISOString()
+            });
+            await updateClientInFirebase(updatedClient.id, { activities: updatedClient.activities });
+        }
+
+        msg.style.color = '#2ecc71';
+        msg.textContent = '✅ Withdrawal request of UGX ' + amount.toLocaleString() + ' submitted!';
+        document.getElementById('withdrawAmount').value = '';
+        document.getElementById('withdrawNumber').value = '';
+        document.getElementById('withdrawHolderName').value = '';
+        renderWithdraw();
+        renderDashboard();
+        showToast('💰 Withdrawal request submitted!', 'success');
+    }
 });
 
-data.withdrawals.push({
-id: generateId(),
-clientPhone: currentClient,
-amount: amount,
-fee: fee,
-number: number,
-network: network,
-holderName: holderName,
-status: 'pending',
-date: new Date().toISOString(),
-adminNotified: false
-});
-
-var updated = getClient(currentClient);
-if (updated) {
-if (!updated.activities) updated.activities = [];
-updated.activities.push({
-action: 'Withdrawal Request',
-detail: 'UGX ' + amount.toLocaleString(),
-status: 'pending',
-date: new Date().toISOString()
-});
-saveData(data);
-}
-
-msg.style.color = '#2ecc71';
-msg.textContent = '✅ Withdrawal request of UGX ' + amount.toLocaleString() + ' submitted!';
-document.getElementById('withdrawAmount').value = '';
-document.getElementById('withdrawNumber').value = '';
-document.getElementById('withdrawHolderName').value = '';
-renderWithdraw();
-renderDashboard();
-showToast('💰 Withdrawal request submitted!', 'success');
-}
-});
-
+// ============================================================
 // ADMIN DASHBOARD
-function renderAdminDashboard() {
-document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
+// ============================================================
+async function renderAdminDashboard() {
+    document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
-var clients = data.clients || [];
-document.getElementById('adminTotalClients').textContent = clients.length;
+    await loadClients();
+    document.getElementById('adminTotalClients').textContent = allClients.length;
 
-var pendingDeposits = data.deposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
-document.getElementById('adminPendingDeposits').textContent = pendingDeposits.length;
+    await loadDeposits();
+    var pendingDeposits = allDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    document.getElementById('adminPendingDeposits').textContent = pendingDeposits.length;
 
-var totalBalance = 0;
-for (var c = 0; c < clients.length; c++) {
-totalBalance += (clients[c].balance || 0);
-}
-document.getElementById('adminSystemBalance').textContent = 'UGX ' + totalBalance.toLocaleString();
+    var totalBalance = 0;
+    for (var c = 0; c < allClients.length; c++) {
+        totalBalance += (allClients[c].balance || 0);
+    }
+    document.getElementById('adminSystemBalance').textContent = 'UGX ' + totalBalance.toLocaleString();
 
-renderAdminClients();
-renderAdminContacts();
-renderAdminDeposits();
-renderAdminWithdrawals();
-renderAdminSupport();
-renderAdminList();
+    renderAdminClients();
+    renderAdminContacts();
+    renderAdminDeposits();
+    renderAdminWithdrawals();
+    renderAdminSupport();
+    renderAdminList();
 
-document.getElementById('whatsappNumber').value = data.whatsapp || '0704072227';
+    document.getElementById('whatsappNumber').value = allContacts.length > 0 ? allContacts[0].number : '0704072227';
 }
 
 function renderAdminClients() {
-var container = document.getElementById('adminClientList');
-var clients = data.clients;
-if (clients.length === 0) {
-container.innerHTML = '<div class="text-muted">No clients registered.</div>';
-return;
-}
-var html = '';
-for (var c = 0; c < clients.length; c++) {
-var client = clients[c];
-var tier = getTier(client.totalInvested || 0);
-var refCount = (client.referrals || []).length;
-html += '<div class="list-item" data-phone="' + client.phone + '"><div class="info"><span class="name">' + client.name + ' <span class="badge-vip" style="font-size:10px;">' + tier + '</span></span><span class="detail">' + client.phone + ' · Balance: UGX ' + (client.balance || 0).toLocaleString() + '</span><span class="detail">Deposited: ' + (client.hasDeposited ? '✅' : '❌') + ' · Invested: ' + (client.hasInvested ? '✅' : '❌') + '</span><span class="detail">Ref Code: ' + client.refCode + ' · Referrals: ' + refCount + '</span><span class="detail">Today\'s Earnings: UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="actions"><button class="btn btn-sm btn-success adminDepositBtn">+ Deposit</button><button class="btn btn-sm btn-danger adminWithdrawBtn">- Withdraw</button></div></div>';
-}
-container.innerHTML = html;
+    var container = document.getElementById('adminClientList');
+    if (allClients.length === 0) {
+        container.innerHTML = '<div class="text-muted">No clients registered.</div>';
+        return;
+    }
+    var html = '';
+    for (var c = 0; c < allClients.length; c++) {
+        var client = allClients[c];
+        var tier = getTier(client.totalInvested || 0);
+        var refCount = (client.referrals || []).length;
+        html += '<div class="list-item" data-phone="' + client.phone + '"><div class="info"><span class="name">' + client.name + ' <span class="badge-vip" style="font-size:10px;">' + tier + '</span></span><span class="detail">' + client.phone + ' · Balance: UGX ' + (client.balance || 0).toLocaleString() + '</span><span class="detail">Deposited: ' + (client.hasDeposited ? '✅' : '❌') + ' · Invested: ' + (client.hasInvested ? '✅' : '❌') + '</span><span class="detail">Ref Code: ' + client.refCode + ' · Referrals: ' + refCount + '</span><span class="detail">Today\'s Earnings: UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="actions"><button class="btn btn-sm btn-success adminDepositBtn">+ Deposit</button><button class="btn btn-sm btn-danger adminWithdrawBtn">- Withdraw</button></div></div>';
+    }
+    container.innerHTML = html;
 
-var rows = container.querySelectorAll('.list-item');
-for (var r = 0; r < rows.length; r++) {
-var row = rows[r];
-var phone = row.dataset.phone;
-var depositBtn = row.querySelector('.adminDepositBtn');
-var withdrawBtn = row.querySelector('.adminWithdrawBtn');
+    var rows = container.querySelectorAll('.list-item');
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var phone = row.dataset.phone;
+        var depositBtn = row.querySelector('.adminDepositBtn');
+        var withdrawBtn = row.querySelector('.adminWithdrawBtn');
 
-depositBtn.addEventListener('click', function(phone) {
-return function() {
-var amount = prompt('Enter amount to deposit (UGX):');
-if (!amount) return;
-var val = parseFloat(amount);
-if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-var client = getClient(phone);
-if (!client) return;
-var newBal = (client.balance || 0) + val;
-updateClient(phone, { balance: newBal, hasDeposited: true });
-var updated = getClient(phone);
-if (updated) {
-if (!updated.activities) updated.activities = [];
-updated.activities.push({
-action: 'Admin Deposit',
-detail: 'UGX ' + val.toLocaleString() + ' (Manual)',
-status: 'successful',
-date: new Date().toISOString()
-});
-saveData(data);
-}
-renderAdminDashboard();
-showToast('💰 Deposited UGX ' + val.toLocaleString() + ' to ' + client.name, 'success');
-};
-}(phone));
+        depositBtn.addEventListener('click', function(phone) {
+            return async function() {
+                var amount = prompt('Enter amount to deposit (UGX):');
+                if (!amount) return;
+                var val = parseFloat(amount);
+                if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
+                await loadClients();
+                var client = allClients.find(c => c.phone === phone);
+                if (!client) return;
+                var newBal = (client.balance || 0) + val;
+                if (!client.activities) client.activities = [];
+                client.activities.push({
+                    action: 'Admin Deposit',
+                    detail: 'UGX ' + val.toLocaleString() + ' (Manual)',
+                    status: 'successful',
+                    date: new Date().toISOString()
+                });
+                await updateClientInFirebase(client.id, {
+                    balance: newBal,
+                    hasDeposited: true,
+                    activities: client.activities
+                });
+                renderAdminDashboard();
+                showToast('💰 Deposited UGX ' + val.toLocaleString() + ' to ' + client.name, 'success');
+            };
+        }(phone));
 
-withdrawBtn.addEventListener('click', function(phone) {
-return function() {
-var amount = prompt('Enter amount to withdraw (UGX):');
-if (!amount) return;
-var val = parseFloat(amount);
-if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-var client = getClient(phone);
-if (!client) return;
-if ((client.balance || 0) < val) {
-alert('Insufficient balance!');
-return;
-}
-var newBal = (client.balance || 0) - val;
-updateClient(phone, { balance: newBal });
-var updated = getClient(phone);
-if (updated) {
-if (!updated.activities) updated.activities = [];
-updated.activities.push({
-action: 'Admin Withdrawal',
-detail: 'UGX ' + val.toLocaleString() + ' (Manual)',
-status: 'successful',
-date: new Date().toISOString()
-});
-saveData(data);
-}
-renderAdminDashboard();
-showToast('💰 Withdrew UGX ' + val.toLocaleString() + ' from ' + client.name, 'warning');
-};
-}(phone));
-}
+        withdrawBtn.addEventListener('click', function(phone) {
+            return async function() {
+                var amount = prompt('Enter amount to withdraw (UGX):');
+                if (!amount) return;
+                var val = parseFloat(amount);
+                if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
+                await loadClients();
+                var client = allClients.find(c => c.phone === phone);
+                if (!client) return;
+                if ((client.balance || 0) < val) {
+                    alert('Insufficient balance!');
+                    return;
+                }
+                var newBal = (client.balance || 0) - val;
+                if (!client.activities) client.activities = [];
+                client.activities.push({
+                    action: 'Admin Withdrawal',
+                    detail: 'UGX ' + val.toLocaleString() + ' (Manual)',
+                    status: 'successful',
+                    date: new Date().toISOString()
+                });
+                await updateClientInFirebase(client.id, {
+                    balance: newBal,
+                    activities: client.activities
+                });
+                renderAdminDashboard();
+                showToast('💰 Withdrew UGX ' + val.toLocaleString() + ' from ' + client.name, 'warning');
+            };
+        }(phone));
+    }
 }
 
 function renderAdminContacts() {
-var container = document.getElementById('adminContactList');
-var contacts = data.contacts;
-if (contacts.length === 0) {
-container.innerHTML = '<div class="text-muted">No accounts.</div>';
-return;
-}
-var html = '';
-for (var c = 0; c < contacts.length; c++) {
-var contact = contacts[c];
-html += '<div class="list-item" data-id="' + contact.id + '"><div class="info"><span class="name">' + contact.name + '</span><span class="detail">' + contact.number + ' · ' + contact.type + '</span></div><div class="actions"><button class="btn btn-sm btn-outline editContactBtn">✏️</button><button class="btn btn-sm btn-danger deleteContactBtn">🗑️</button></div></div>';
-}
-container.innerHTML = html;
+    var container = document.getElementById('adminContactList');
+    if (allContacts.length === 0) {
+        container.innerHTML = '<div class="text-muted">No accounts.</div>';
+        return;
+    }
+    var html = '';
+    for (var c = 0; c < allContacts.length; c++) {
+        var contact = allContacts[c];
+        html += '<div class="list-item" data-id="' + contact.id + '"><div class="info"><span class="name">' + contact.name + '</span><span class="detail">' + contact.number + ' · ' + contact.type + '</span></div><div class="actions"><button class="btn btn-sm btn-outline editContactBtn">✏️</button><button class="btn btn-sm btn-danger deleteContactBtn">🗑️</button></div></div>';
+    }
+    container.innerHTML = html;
 
-var items = container.querySelectorAll('.list-item');
-for (var i = 0; i < items.length; i++) {
-var item = items[i];
-var id = item.dataset.id;
-var editBtn = item.querySelector('.editContactBtn');
-var deleteBtn = item.querySelector('.deleteContactBtn');
+    var items = container.querySelectorAll('.list-item');
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var id = item.dataset.id;
+        var editBtn = item.querySelector('.editContactBtn');
+        var deleteBtn = item.querySelector('.deleteContactBtn');
 
-editBtn.addEventListener('click', function(id) {
-return function() {
-var contact = null;
-for (var c2 = 0; c2 < data.contacts.length; c2++) {
-if (data.contacts[c2].id === id) { contact = data.contacts[c2]; break; }
-}
-if (!contact) return;
-document.getElementById('contactEditId').value = id;
-document.getElementById('contactName').value = contact.name;
-document.getElementById('contactNumber').value = contact.number;
-document.getElementById('contactType').value = contact.type;
-document.getElementById('contactFormTitle').textContent = 'Edit Account';
-document.getElementById('contactFormContainer').style.display = 'block';
-};
-}(id));
+        editBtn.addEventListener('click', function(id) {
+            return function() {
+                var contact = allContacts.find(function(c) { return c.id === id; });
+                if (!contact) return;
+                document.getElementById('contactEditId').value = id;
+                document.getElementById('contactName').value = contact.name;
+                document.getElementById('contactNumber').value = contact.number;
+                document.getElementById('contactType').value = contact.type;
+                document.getElementById('contactFormTitle').textContent = 'Edit Account';
+                document.getElementById('contactFormContainer').style.display = 'block';
+            };
+        }(id));
 
-deleteBtn.addEventListener('click', function(id) {
-return function() {
-if (confirm('Delete this account?')) {
-data.contacts = data.contacts.filter(function(c) { return c.id !== id; });
-saveData(data);
-renderAdminContacts();
-showToast('Account deleted.', 'info');
-}
-};
-}(id));
-}
+        deleteBtn.addEventListener('click', function(id) {
+            return async function() {
+                if (confirm('Delete this account?')) {
+                    await deleteContactFromFirebase(id);
+                    await loadContacts();
+                    renderAdminContacts();
+                    showToast('Account deleted.', 'info');
+                }
+            };
+        }(id));
+    }
 }
 
 document.getElementById('addContactBtn').addEventListener('click', function() {
-document.getElementById('contactEditId').value = '';
-document.getElementById('contactName').value = '';
-document.getElementById('contactNumber').value = '';
-document.getElementById('contactType').value = 'MTN';
-document.getElementById('contactFormTitle').textContent = 'Add Account';
-document.getElementById('contactFormContainer').style.display = 'block';
+    document.getElementById('contactEditId').value = '';
+    document.getElementById('contactName').value = '';
+    document.getElementById('contactNumber').value = '';
+    document.getElementById('contactType').value = 'MTN';
+    document.getElementById('contactFormTitle').textContent = 'Add Account';
+    document.getElementById('contactFormContainer').style.display = 'block';
 });
 
 document.getElementById('cancelContactBtn').addEventListener('click', function() {
-document.getElementById('contactFormContainer').style.display = 'none';
+    document.getElementById('contactFormContainer').style.display = 'none';
 });
 
-document.getElementById('contactForm').addEventListener('submit', function(e) {
-e.preventDefault();
-var id = document.getElementById('contactEditId').value;
-var name = document.getElementById('contactName').value.trim();
-var number = document.getElementById('contactNumber').value.trim();
-var type = document.getElementById('contactType').value;
+document.getElementById('contactForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var id = document.getElementById('contactEditId').value;
+    var name = document.getElementById('contactName').value.trim();
+    var number = document.getElementById('contactNumber').value.trim();
+    var type = document.getElementById('contactType').value;
 
-if (!name || !number) { alert('Please fill all fields.'); return; }
+    if (!name || !number) { alert('Please fill all fields.'); return; }
 
-if (id) {
-for (var c = 0; c < data.contacts.length; c++) {
-if (data.contacts[c].id === id) {
-data.contacts[c] = { id: id, name: name, number: number, type: type };
-saveData(data);
-showToast('Account updated!', 'success');
-break;
-}
-}
-} else {
-data.contacts.push({ id: generateId(), name: name, number: number, type: type });
-saveData(data);
-showToast('Account added!', 'success');
-}
-document.getElementById('contactFormContainer').style.display = 'none';
-renderAdminContacts();
+    if (id) {
+        await updateContactInFirebase(id, { name: name, number: number, type: type });
+        showToast('Account updated!', 'success');
+    } else {
+        await addContactToFirebase({ name: name, number: number, type: type });
+        showToast('Account added!', 'success');
+    }
+    document.getElementById('contactFormContainer').style.display = 'none';
+    await loadContacts();
+    renderAdminContacts();
 });
 
-document.getElementById('saveWhatsappBtn').addEventListener('click', function() {
-var number = document.getElementById('whatsappNumber').value.trim();
-if (!number) { alert('Please enter a WhatsApp number.'); return; }
-data.whatsapp = number;
-saveData(data);
-updateWhatsAppButton();
-showToast('✅ WhatsApp number saved!', 'success');
+document.getElementById('saveWhatsappBtn').addEventListener('click', async function() {
+    var number = document.getElementById('whatsappNumber').value.trim();
+    if (!number) { alert('Please enter a WhatsApp number.'); return; }
+    if (allContacts.length > 0) {
+        await updateContactInFirebase(allContacts[0].id, { number: number });
+    } else {
+        await addContactToFirebase({ name: 'WhatsApp Support', number: number, type: 'WhatsApp' });
+    }
+    await loadContacts();
+    updateWhatsAppButton();
+    showToast('✅ WhatsApp number saved!', 'success');
 });
 
+// ============================================================
 // ADMIN SUPPORT CHAT
-function renderAdminSupport() {
-var container = document.getElementById('adminSupportList');
-var clientsWithMessages = [];
-for (var m = 0; m < data.messages.length; m++) {
-if (clientsWithMessages.indexOf(data.messages[m].clientPhone) === -1) {
-clientsWithMessages.push(data.messages[m].clientPhone);
-}
+// ============================================================
+async function renderAdminSupport() {
+    var container = document.getElementById('adminSupportList');
+    await loadMessages();
+    var clientsWithMessages = [];
+    for (var m = 0; m < allMessages.length; m++) {
+        if (clientsWithMessages.indexOf(allMessages[m].clientPhone) === -1) {
+            clientsWithMessages.push(allMessages[m].clientPhone);
+        }
+    }
+
+    if (clientsWithMessages.length === 0) {
+        container.innerHTML = '<div class="text-muted">No support messages yet.</div>';
+        return;
+    }
+
+    var html = '';
+    for (var c = 0; c < clientsWithMessages.length; c++) {
+        var phone = clientsWithMessages[c];
+        await loadClients();
+        var client = allClients.find(function(cl) { return cl.phone === phone; });
+        var clientMessages = allMessages.filter(function(m) { return m.clientPhone === phone; });
+        var lastMsg = clientMessages[clientMessages.length - 1];
+        var unread = 0;
+        for (var um = 0; um < clientMessages.length; um++) {
+            if (clientMessages[um].sender === 'client' && !clientMessages[um].read) unread++;
+        }
+        html += '<div class="list-item" data-phone="' + phone + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + (unread > 0 ? ' <span class="badge">' + unread + '</span>' : '') + '</span><span class="detail">' + phone + ' · ' + clientMessages.length + ' messages</span><span class="detail">Last: ' + new Date(lastMsg.date).toLocaleString() + '</span><span class="detail">' + lastMsg.text.substring(0, 50) + (lastMsg.text.length > 50 ? '...' : '') + '</span></div><button class="btn btn-sm btn-primary replySupportBtn">Reply</button></div>';
+    }
+    container.innerHTML = html;
+
+    var replyBtns = container.querySelectorAll('.replySupportBtn');
+    for (var rb = 0; rb < replyBtns.length; rb++) {
+        replyBtns[rb].addEventListener('click', function() {
+            var item = this.closest('.list-item');
+            var phone = item.dataset.phone;
+            document.getElementById('adminReplyClient').value = phone;
+            var client = allClients.find(function(c) { return c.phone === phone; });
+            document.getElementById('adminReplyTitle').textContent = 'Replying to ' + (client ? client.name : phone);
+            document.getElementById('adminReplyContainer').style.display = 'block';
+            document.getElementById('adminReplyContainer').scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 }
 
-if (clientsWithMessages.length === 0) {
-container.innerHTML = '<div class="text-muted">No support messages yet.</div>';
-return;
-}
+document.getElementById('adminSendReplyBtn').addEventListener('click', async function() {
+    var phone = document.getElementById('adminReplyClient').value;
+    var message = document.getElementById('adminReplyMessage').value.trim();
+    if (!message || !phone) return;
 
-var html = '';
-for (var c = 0; c < clientsWithMessages.length; c++) {
-var phone = clientsWithMessages[c];
-var client = getClient(phone);
-var clientMessages = data.messages.filter(function(m) { return m.clientPhone === phone; });
-var lastMsg = clientMessages[clientMessages.length - 1];
-var unread = 0;
-for (var um = 0; um < clientMessages.length; um++) {
-if (clientMessages[um].sender === 'client' && !clientMessages[um].read) unread++;
-}
-html += '<div class="list-item" data-phone="' + phone + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + (unread > 0 ? ' <span class="badge">' + unread + '</span>' : '') + '</span><span class="detail">' + phone + ' · ' + clientMessages.length + ' messages</span><span class="detail">Last: ' + new Date(lastMsg.date).toLocaleString() + '</span><span class="detail">' + lastMsg.text.substring(0, 50) + (lastMsg.text.length > 50 ? '...' : '') + '</span></div><button class="btn btn-sm btn-primary replySupportBtn">Reply</button></div>';
-}
-container.innerHTML = html;
+    await addMessageToFirebase({
+        clientPhone: phone,
+        sender: 'support',
+        adminName: currentAdminName || 'Support Team',
+        text: message,
+        date: new Date().toISOString()
+    });
 
-var replyBtns = container.querySelectorAll('.replySupportBtn');
-for (var rb = 0; rb < replyBtns.length; rb++) {
-replyBtns[rb].addEventListener('click', function() {
-var item = this.closest('.list-item');
-var phone = item.dataset.phone;
-document.getElementById('adminReplyClient').value = phone;
-var client = getClient(phone);
-document.getElementById('adminReplyTitle').textContent = 'Replying to ' + (client ? client.name : phone);
-document.getElementById('adminReplyContainer').style.display = 'block';
-document.getElementById('adminReplyContainer').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('adminReplyMessage').value = '';
+    document.getElementById('adminReplyContainer').style.display = 'none';
+    await loadMessages();
+    renderAdminSupport();
+    showToast('✅ Reply sent!', 'success');
 });
-}
-}
 
-document.getElementById('adminSendReplyBtn').addEventListener('click', function() {
-var phone = document.getElementById('adminReplyClient').value;
-var message = document.getElementById('adminReplyMessage').value.trim();
-if (!message || !phone) return;
-
-data.messages.push({
-clientPhone: phone,
-sender: 'support',
-adminName: currentAdminName || 'Support Team',
-text: message,
-date: new Date().toISOString()
-});
-saveData(data);
-
-document.getElementById('adminReplyMessage').value = '';
-document.getElementById('adminReplyContainer').style.display = 'none';
-renderAdminSupport();
-showToast('✅ Reply sent!', 'success');
-});
-
+// ============================================================
 // ADMIN DEPOSITS
-function renderAdminDeposits() {
-var container = document.getElementById('adminDepositsList');
-var pending = data.deposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
-if (pending.length === 0) {
-container.innerHTML = '<div class="text-muted">No pending deposits.</div>';
-return;
-}
-var html = '';
-for (var d = 0; d < pending.length; d++) {
-var deposit = pending[d];
-var client = getClient(deposit.clientPhone);
-html += '<div class="list-item" data-id="' + deposit.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + deposit.amount.toLocaleString() + ' · ' + deposit.sender + '</span><span class="detail">' + (deposit.name || '') + ' · ' + new Date(deposit.date).toLocaleString() + '</span><span class="detail">Status: <span class="status-badge ' + deposit.status + '">' + deposit.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingDepositBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmDepositBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectDepositBtn">❌ Reject</button></div></div>';
-}
-container.innerHTML = html;
+// ============================================================
+async function renderAdminDeposits() {
+    var container = document.getElementById('adminDepositsList');
+    await loadDeposits();
+    var pending = allDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    if (pending.length === 0) {
+        container.innerHTML = '<div class="text-muted">No pending deposits.</div>';
+        return;
+    }
+    var html = '';
+    for (var d = 0; d < pending.length; d++) {
+        var deposit = pending[d];
+        await loadClients();
+        var client = allClients.find(function(c) { return c.phone === deposit.clientPhone; });
+        html += '<div class="list-item" data-id="' + deposit.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + deposit.amount.toLocaleString() + ' · ' + deposit.sender + '</span><span class="detail">' + (deposit.name || '') + ' · ' + new Date(deposit.date).toLocaleString() + '</span><span class="detail">Status: <span class="status-badge ' + deposit.status + '">' + deposit.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingDepositBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmDepositBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectDepositBtn">❌ Reject</button></div></div>';
+    }
+    container.innerHTML = html;
 
-var items = container.querySelectorAll('.list-item');
-for (var i = 0; i < items.length; i++) {
-var item = items[i];
-var id = item.dataset.id;
-var processingBtn = item.querySelector('.processingDepositBtn');
-var confirmBtn = item.querySelector('.confirmDepositBtn');
-var rejectBtn = item.querySelector('.rejectDepositBtn');
+    var items = container.querySelectorAll('.list-item');
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var id = item.dataset.id;
+        var processingBtn = item.querySelector('.processingDepositBtn');
+        var confirmBtn = item.querySelector('.confirmDepositBtn');
+        var rejectBtn = item.querySelector('.rejectDepositBtn');
 
-processingBtn.addEventListener('click', function(id) {
-return function() {
-for (var d2 = 0; d2 < data.deposits.length; d2++) {
-if (data.deposits[d2].id === id) {
-data.deposits[d2].status = 'processing';
-saveData(data);
-renderAdminDashboard();
-showToast('Deposit status updated to Processing', 'info');
-break;
-}
-}
-};
-}(id));
+        processingBtn.addEventListener('click', function(id) {
+            return async function() {
+                await updateDepositInFirebase(id, { status: 'processing' });
+                await loadDeposits();
+                renderAdminDashboard();
+                showToast('Deposit status updated to Processing', 'info');
+            };
+        }(id));
 
-confirmBtn.addEventListener('click', function(id) {
-return function() {
-var deposit = null;
-for (var d3 = 0; d3 < data.deposits.length; d3++) {
-if (data.deposits[d3].id === id) { deposit = data.deposits[d3]; break; }
-}
-if (!deposit) return;
-var client = getClient(deposit.clientPhone);
-if (client) {
-var newBal = (client.balance || 0) + deposit.amount;
-updateClient(deposit.clientPhone, { balance: newBal, hasDeposited: true });
-var updated = getClient(deposit.clientPhone);
-if (updated) {
-if (!updated.activities) updated.activities = [];
-updated.activities.push({
-action: 'Deposit Confirmed',
-detail: 'UGX ' + deposit.amount.toLocaleString(),
-status: 'successful',
-date: new Date().toISOString()
-});
-saveData(data);
-}
-if (updated && updated.referredBy) {
-var referrer = null;
-for (var r2 = 0; r2 < data.clients.length; r2++) {
-if (data.clients[r2].refCode === updated.referredBy) { referrer = data.clients[r2]; break; }
-}
-if (referrer) {
-var bonus = Math.floor(deposit.amount * 0.23);
-updateClient(referrer.phone, {
-referralBonus: (referrer.referralBonus || 0) + bonus,
-balance: (referrer.balance || 0) + bonus
-});
-showToast('🎁 Referral bonus UGX ' + bonus + ' sent to ' + referrer.name, 'success');
-}
-}
-}
-deposit.status = 'successful';
-deposit.adminNotified = true;
-saveData(data);
-renderAdminDashboard();
-showToast('✅ Deposit of UGX ' + deposit.amount.toLocaleString() + ' confirmed!', 'success');
-};
-}(id));
+        confirmBtn.addEventListener('click', function(id) {
+            return async function() {
+                var deposit = allDeposits.find(function(d) { return d.id === id; });
+                if (!deposit) return;
+                await loadClients();
+                var client = allClients.find(function(c) { return c.phone === deposit.clientPhone; });
+                if (client) {
+                    var newBal = (client.balance || 0) + deposit.amount;
+                    if (!client.activities) client.activities = [];
+                    client.activities.push({
+                        action: 'Deposit Confirmed',
+                        detail: 'UGX ' + deposit.amount.toLocaleString(),
+                        status: 'successful',
+                        date: new Date().toISOString()
+                    });
+                    await updateClientInFirebase(client.id, {
+                        balance: newBal,
+                        hasDeposited: true,
+                        activities: client.activities
+                    });
 
-rejectBtn.addEventListener('click', function(id) {
-return function() {
-if (confirm('Reject this deposit?')) {
-for (var d4 = 0; d4 < data.deposits.length; d4++) {
-if (data.deposits[d4].id === id) {
-data.deposits[d4].status = 'rejected';
-saveData(data);
-renderAdminDashboard();
-showToast('Deposit rejected.', 'error');
-break;
-}
-}
-}
-};
-}(id));
-}
+                    // Referral bonus (23%)
+                    if (client.referredBy) {
+                        var referrer = allClients.find(function(c) { return c.refCode === client.referredBy; });
+                        if (referrer) {
+                            var bonus = Math.floor(deposit.amount * 0.23);
+                            if (!referrer.activities) referrer.activities = [];
+                            referrer.activities.push({
+                                action: 'Referral Bonus from ' + client.name,
+                                detail: 'UGX ' + bonus.toLocaleString(),
+                                status: 'successful',
+                                date: new Date().toISOString()
+                            });
+                            await updateClientInFirebase(referrer.id, {
+                                referralBonus: (referrer.referralBonus || 0) + bonus,
+                                balance: (referrer.balance || 0) + bonus,
+                                activities: referrer.activities
+                            });
+                            showToast('🎁 Referral bonus UGX ' + bonus + ' sent to ' + referrer.name, 'success');
+                        }
+                    }
+                }
+                await updateDepositInFirebase(id, { status: 'successful', adminNotified: true });
+                await loadDeposits();
+                renderAdminDashboard();
+                showToast('✅ Deposit of UGX ' + deposit.amount.toLocaleString() + ' confirmed!', 'success');
+            };
+        }(id));
+
+        rejectBtn.addEventListener('click', function(id) {
+            return async function() {
+                if (confirm('Reject this deposit?')) {
+                    await updateDepositInFirebase(id, { status: 'rejected' });
+                    await loadDeposits();
+                    renderAdminDashboard();
+                    showToast('Deposit rejected.', 'error');
+                }
+            };
+        }(id));
+    }
 }
 
+// ============================================================
 // ADMIN WITHDRAWALS
-function renderAdminWithdrawals() {
-var container = document.getElementById('adminWithdrawalsList');
-var pending = data.withdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
-if (pending.length === 0) {
-container.innerHTML = '<div class="text-muted">No pending withdrawals.</div>';
-return;
-}
-var html = '';
-for (var d = 0; d < pending.length; d++) {
-var withdrawal = pending[d];
-var client = getClient(withdrawal.clientPhone);
-html += '<div class="list-item" data-id="' + withdrawal.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + withdrawal.amount.toLocaleString() + ' · Fee: UGX ' + withdrawal.fee.toLocaleString() + '</span><span class="detail">📱 ' + withdrawal.number + ' (' + withdrawal.network + ') · ' + new Date(withdrawal.date).toLocaleString() + '</span><span class="detail">Holder: ' + (withdrawal.holderName || 'N/A') + '</span><span class="detail">Status: <span class="status-badge ' + withdrawal.status + '">' + withdrawal.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingWithdrawBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmWithdrawBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectWithdrawBtn">❌ Reject</button></div></div>';
-}
-container.innerHTML = html;
+// ============================================================
+async function renderAdminWithdrawals() {
+    var container = document.getElementById('adminWithdrawalsList');
+    await loadWithdrawals();
+    var pending = allWithdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    if (pending.length === 0) {
+        container.innerHTML = '<div class="text-muted">No pending withdrawals.</div>';
+        return;
+    }
+    var html = '';
+    for (var d = 0; d < pending.length; d++) {
+        var withdrawal = pending[d];
+        await loadClients();
+        var client = allClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
+        html += '<div class="list-item" data-id="' + withdrawal.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + withdrawal.amount.toLocaleString() + ' · Fee: UGX ' + withdrawal.fee.toLocaleString() + '</span><span class="detail">📱 ' + withdrawal.number + ' (' + withdrawal.network + ') · ' + new Date(withdrawal.date).toLocaleString() + '</span><span class="detail">Holder: ' + (withdrawal.holderName || 'N/A') + '</span><span class="detail">Status: <span class="status-badge ' + withdrawal.status + '">' + withdrawal.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingWithdrawBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmWithdrawBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectWithdrawBtn">❌ Reject</button></div></div>';
+    }
+    container.innerHTML = html;
 
-var items = container.querySelectorAll('.list-item');
-for (var i = 0; i < items.length; i++) {
-var item = items[i];
-var id = item.dataset.id;
-var processingBtn = item.querySelector('.processingWithdrawBtn');
-var confirmBtn = item.querySelector('.confirmWithdrawBtn');
-var rejectBtn = item.querySelector('.rejectWithdrawBtn');
+    var items = container.querySelectorAll('.list-item');
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var id = item.dataset.id;
+        var processingBtn = item.querySelector('.processingWithdrawBtn');
+        var confirmBtn = item.querySelector('.confirmWithdrawBtn');
+        var rejectBtn = item.querySelector('.rejectWithdrawBtn');
 
-processingBtn.addEventListener('click', function(id) {
-return function() {
-for (var d2 = 0; d2 < data.withdrawals.length; d2++) {
-if (data.withdrawals[d2].id === id) {
-data.withdrawals[d2].status = 'processing';
-saveData(data);
-renderAdminDashboard();
-showToast('Withdrawal status updated to Processing', 'info');
-break;
-}
-}
-};
-}(id));
+        processingBtn.addEventListener('click', function(id) {
+            return async function() {
+                await updateWithdrawalInFirebase(id, { status: 'processing' });
+                await loadWithdrawals();
+                renderAdminDashboard();
+                showToast('Withdrawal status updated to Processing', 'info');
+            };
+        }(id));
 
-confirmBtn.addEventListener('click', function(id) {
-return function() {
-for (var d3 = 0; d3 < data.withdrawals.length; d3++) {
-if (data.withdrawals[d3].id === id) {
-data.withdrawals[d3].status = 'successful';
-data.withdrawals[d3].adminNotified = true;
-saveData(data);
-renderAdminDashboard();
-showToast('✅ Withdrawal of UGX ' + data.withdrawals[d3].amount.toLocaleString() + ' confirmed!', 'success');
-break;
-}
-}
-};
-}(id));
+        confirmBtn.addEventListener('click', function(id) {
+            return async function() {
+                await updateWithdrawalInFirebase(id, { status: 'successful', adminNotified: true });
+                await loadWithdrawals();
+                renderAdminDashboard();
+                showToast('✅ Withdrawal confirmed!', 'success');
+            };
+        }(id));
 
-rejectBtn.addEventListener('click', function(id) {
-return function() {
-if (confirm('Reject this withdrawal?')) {
-for (var d4 = 0; d4 < data.withdrawals.length; d4++) {
-if (data.withdrawals[d4].id === id) {
-var withdrawal = data.withdrawals[d4];
-var client = getClient(withdrawal.clientPhone);
-if (client) {
-var refund = withdrawal.amount + withdrawal.fee;
-updateClient(withdrawal.clientPhone, { balance: (client.balance || 0) + refund });
-}
-withdrawal.status = 'rejected';
-saveData(data);
-renderAdminDashboard();
-showToast('Withdrawal rejected. Funds refunded.', 'error');
-break;
-}
-}
-}
-};
-}(id));
-}
+        rejectBtn.addEventListener('click', function(id) {
+            return async function() {
+                if (confirm('Reject this withdrawal?')) {
+                    var withdrawal = allWithdrawals.find(function(d) { return d.id === id; });
+                    if (withdrawal) {
+                        await loadClients();
+                        var client = allClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
+                        if (client) {
+                            var refund = withdrawal.amount + withdrawal.fee;
+                            await updateClientInFirebase(client.id, { balance: (client.balance || 0) + refund });
+                        }
+                    }
+                    await updateWithdrawalInFirebase(id, { status: 'rejected' });
+                    await loadWithdrawals();
+                    renderAdminDashboard();
+                    showToast('Withdrawal rejected. Funds refunded.', 'error');
+                }
+            };
+        }(id));
+    }
 }
 
+// ============================================================
 // ADMIN MANAGEMENT
-function renderAdminList() {
-var container = document.getElementById('adminList');
-var admins = data.admins || [];
-if (admins.length === 0) {
-container.innerHTML = '<div class="text-muted">No admins.</div>';
-return;
-}
-var html = '';
-for (var a = 0; a < admins.length; a++) {
-html += '<div class="list-item"><div class="info"><span class="name">' + admins[a].name + '</span><span class="detail">Username: ' + admins[a].username + '</span></div><div class="actions">' + (admins[a].username !== 'admin' ? '<button class="btn btn-sm btn-danger deleteAdminBtn" data-index="' + a + '">Delete</button>' : '<span class="badge-sm">Super Admin</span>') + '</div></div>';
-}
-container.innerHTML = html;
+// ============================================================
+async function renderAdminList() {
+    var container = document.getElementById('adminList');
+    await loadAdmins();
+    if (allAdmins.length === 0) {
+        container.innerHTML = '<div class="text-muted">No admins.</div>';
+        return;
+    }
+    var html = '';
+    for (var a = 0; a < allAdmins.length; a++) {
+        var admin = allAdmins[a];
+        html += '<div class="list-item"><div class="info"><span class="name">' + admin.name + '</span><span class="detail">Username: ' + admin.username + '</span></div><div class="actions">' + (admin.username !== 'admin' ? '<button class="btn btn-sm btn-danger deleteAdminBtn" data-id="' + admin.id + '">Delete</button>' : '<span class="badge-sm">Super Admin</span>') + '</div></div>';
+    }
+    container.innerHTML = html;
 
-var deleteBtns = container.querySelectorAll('.deleteAdminBtn');
-for (var db = 0; db < deleteBtns.length; db++) {
-deleteBtns[db].addEventListener('click', function() {
-var index = parseInt(this.dataset.index);
-if (confirm('Delete this admin?')) {
-data.admins.splice(index, 1);
-saveData(data);
-renderAdminList();
-showToast('Admin deleted.', 'info');
+    var deleteBtns = container.querySelectorAll('.deleteAdminBtn');
+    for (var db = 0; db < deleteBtns.length; db++) {
+        deleteBtns[db].addEventListener('click', function() {
+            var id = this.dataset.id;
+            if (confirm('Delete this admin?')) {
+                deleteAdminFromFirebase(id);
+                renderAdminList();
+                showToast('Admin deleted.', 'info');
+            }
+        });
+    }
 }
+
+document.getElementById('addAdminBtn').addEventListener('click', async function() {
+    var name = document.getElementById('newAdminName').value.trim();
+    var user = document.getElementById('newAdminUser').value.trim();
+    var pass = document.getElementById('newAdminPass').value.trim();
+
+    if (!name || !user || !pass) { alert('Please fill all fields.'); return; }
+    await loadAdmins();
+    for (var a = 0; a < allAdmins.length; a++) {
+        if (allAdmins[a].username === user) {
+            alert('Username already exists.');
+            return;
+        }
+    }
+    await addAdminToFirebase({ name: name, username: user, password: pass });
+    document.getElementById('newAdminName').value = '';
+    document.getElementById('newAdminUser').value = '';
+    document.getElementById('newAdminPass').value = '';
+    await loadAdmins();
+    renderAdminList();
+    showToast('✅ Admin added!', 'success');
 });
-}
-}
 
-document.getElementById('addAdminBtn').addEventListener('click', function() {
-var name = document.getElementById('newAdminName').value.trim();
-var user = document.getElementById('newAdminUser').value.trim();
-var pass = document.getElementById('newAdminPass').value.trim();
-
-if (!name || !user || !pass) { alert('Please fill all fields.'); return; }
-for (var a = 0; a < data.admins.length; a++) {
-if (data.admins[a].username === user) {
-alert('Username already exists.');
-return;
-}
-}
-data.admins.push({ name: name, username: user, password: pass });
-saveData(data);
-document.getElementById('newAdminName').value = '';
-document.getElementById('newAdminUser').value = '';
-document.getElementById('newAdminPass').value = '';
-renderAdminList();
-showToast('✅ Admin added!', 'success');
-});
-
+// ============================================================
 // ADMIN TABS
+// ============================================================
 var adminTabs = document.querySelectorAll('.admin-tab');
 for (var t = 0; t < adminTabs.length; t++) {
-adminTabs[t].addEventListener('click', function() {
-var tabName = this.dataset.adminTab;
-var tabs = document.querySelectorAll('.admin-tab');
-for (var t2 = 0; t2 < tabs.length; t2++) {
-tabs[t2].style.background = 'transparent';
-tabs[t2].style.color = '#8e9fb1';
-}
-this.style.background = 'linear-gradient(135deg, #2ecc71, #e74c3c)';
-this.style.color = '#fff';
+    adminTabs[t].addEventListener('click', function() {
+        var tabName = this.dataset.adminTab;
+        var tabs = document.querySelectorAll('.admin-tab');
+        for (var t2 = 0; t2 < tabs.length; t2++) {
+            tabs[t2].style.background = 'transparent';
+            tabs[t2].style.color = '#8e9fb1';
+        }
+        this.style.background = 'linear-gradient(135deg, #2ecc71, #e74c3c)';
+        this.style.color = '#fff';
 
-var contents = document.querySelectorAll('.admin-content');
-for (var c2 = 0; c2 < contents.length; c2++) {
-contents[c2].style.display = 'none';
-}
-var target = document.getElementById('adminTab-' + tabName);
-if (target) target.style.display = 'block';
-if (tabName === 'support') renderAdminSupport();
-if (tabName === 'admins') renderAdminList();
-});
+        var contents = document.querySelectorAll('.admin-content');
+        for (var c2 = 0; c2 < contents.length; c2++) {
+            contents[c2].style.display = 'none';
+        }
+        var target = document.getElementById('adminTab-' + tabName);
+        if (target) target.style.display = 'block';
+        if (tabName === 'support') renderAdminSupport();
+        if (tabName === 'admins') renderAdminList();
+    });
 }
 
+// ============================================================
 // CHECK REFERRAL IN URL
+// ============================================================
 function checkReferralOnLoad() {
-var urlParams = new URLSearchParams(window.location.search);
-var ref = urlParams.get('ref');
-if (ref) {
-window._referralCode = ref;
-var regRefInput = document.getElementById('clientRegRef');
-if (regRefInput) regRefInput.value = ref;
-setTimeout(function() {
-showToast('🎁 Referral code ' + ref + ' applied! Get 23% bonus on deposit.', 'success');
-}, 1500);
-}
+    var urlParams = new URLSearchParams(window.location.search);
+    var ref = urlParams.get('ref');
+    if (ref) {
+        window._referralCode = ref;
+        var regRefInput = document.getElementById('clientRegRef');
+        if (regRefInput) regRefInput.value = ref;
+        setTimeout(function() {
+            showToast('🎁 Referral code ' + ref + ' applied! Get 23% bonus on deposit.', 'success');
+        }, 1500);
+    }
 }
 
+// ============================================================
 // INIT
+// ============================================================
 window.addEventListener('load', function() {
-checkReferralOnLoad();
+    checkReferralOnLoad();
 
-var saved = localStorage.getItem('cashx_session_v10');
-if (saved) {
-try {
-var session = JSON.parse(saved);
-if (session.client && getClient(session.client)) {
-currentClient = session.client;
-navigate('client-dashboard');
-return;
-}
-if (session.admin) {
-isAdmin = true;
-currentAdminName = session.adminName || 'Support Team';
-navigate('admin-dashboard');
-return;
-}
-} catch(e) {}
-}
-navigate('home');
+    var saved = localStorage.getItem('cashx_session_v11');
+    if (saved) {
+        try {
+            var session = JSON.parse(saved);
+            if (session.client) {
+                currentClient = session.client;
+                navigate('client-dashboard');
+                return;
+            }
+            if (session.admin) {
+                isAdmin = true;
+                currentAdminName = session.adminName || 'Support Team';
+                navigate('admin-dashboard');
+                return;
+            }
+        } catch(e) {}
+    }
+    navigate('home');
 });
 
 function saveSession() {
-var session = {};
-if (currentClient) session.client = currentClient;
-if (isAdmin) {
-session.admin = true;
-session.adminName = currentAdminName;
-}
-localStorage.setItem('cashx_session_v10', JSON.stringify(session));
+    var session = {};
+    if (currentClient) session.client = currentClient;
+    if (isAdmin) {
+        session.admin = true;
+        session.adminName = currentAdminName;
+    }
+    localStorage.setItem('cashx_session_v11', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
 navigate = function(pageId) {
-origNavigate(pageId);
-if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
-if (pageId === 'home' || pageId === 'client-login' || pageId === 'admin-login') {
-localStorage.removeItem('cashx_session_v10');
-}
+    origNavigate(pageId);
+    if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
+    if (pageId === 'home' || pageId === 'client-login' || pageId === 'admin-login') {
+        localStorage.removeItem('cashx_session_v11');
+    }
 };
 
-console.log('🚀 CASH X v10 Loaded!');
+console.log('🚀 CASH X v11 - Firebase Cloud Version Loaded!');
 console.log('👤 Super Admin: admin / admin123');
-console.log('📦 Products available: ' + data.products.length);
-console.log('👥 Active Users: ' + (data.activeUsers || ACTIVE_USERS_START));
-console.log('🎁 Registration Bonus: UGX 4,000');
-console.log('👥 Referral Bonus: 23%');
-console.log('📊 Withdrawal Fee: 12%');
-console.log('📦 Products 5,000-70,000 now have 30 days duration');
-})();
+console.log('📦 Products available: ' + PRODUCTS.length);
+console.log('☁️ All data stored in Firebase Cloud');
+console.log('✅ Cross-device sync enabled');
 </script>
 </body>
 </html>
