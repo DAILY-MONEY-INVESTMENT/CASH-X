@@ -1073,7 +1073,7 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
     }
     if (pass.length < 4) { msg.textContent = 'Password must be at least 4 characters.'; return; }
 
-    await loadAllData();
+    // // // // // await loadAllData();
     if (cachedClients.find(c => c.phone === phone)) {
         msg.textContent = 'Phone already registered.';
         return;
@@ -1139,7 +1139,7 @@ document.getElementById('clientLoginForm').addEventListener('submit', async func
         return;
     }
 
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === phone);
     if (!client || client.password !== pass) {
         msg.textContent = 'Invalid phone or password.';
@@ -1159,7 +1159,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
     var pass = document.getElementById('adminLoginPass').value.trim();
     var msg = document.getElementById('adminLoginMsg');
 
-    await loadAllData();
+    // // // // // await loadAllData();
     var admin = cachedAdmins.find(a => a.username === user && a.password === pass);
     if (admin) {
         isAdmin = true;
@@ -1222,7 +1222,7 @@ document.getElementById('acceptModalBtn').addEventListener('click', function() {
 // WHATSAPP
 // ============================================================
 async function updateWhatsAppButton() {
-    await loadAllData();
+    // // // // // await loadAllData();
     var whatsapp = cachedContacts.length > 0 ? cachedContacts[0].number : '0704072227';
     var btn = document.getElementById('whatsappFloatBtn');
     btn.href = 'https://wa.me/256' + whatsapp.replace(/\D/g, '');
@@ -1233,7 +1233,7 @@ updateWhatsAppButton();
 // HOME STATS
 // ============================================================
 async function updateHomeStats() {
-    await loadAllData();
+    // // // // // await loadAllData();
     var stats = await db.collection('system').doc('stats').get();
     var activeUsers = stats.exists ? (stats.data().activeUsers || 673) : 673;
     document.getElementById('homeUsers').textContent = activeUsers;
@@ -1252,7 +1252,7 @@ async function updateHomeStats() {
 // ============================================================
 async function processDailyEarnings() {
     var now = new Date();
-    await loadAllData();
+    // // // // // await loadAllData();
     for (var c = 0; c < cachedClients.length; c++) {
         var client = cachedClients[c];
         if (client.products && client.products.length > 0) {
@@ -1308,7 +1308,7 @@ setTimeout(processDailyEarnings, 5000);
 // RENDER DASHBOARD
 // ============================================================
 async function renderDashboard() {
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
@@ -1387,7 +1387,7 @@ function renderProducts() {
             var productId = this.dataset.id;
             var product = PRODUCTS.find(function(p) { return p.id === productId; });
             if (!product) return;
-            await loadAllData();
+            // // // // // await loadAllData();
             var client = cachedClients.find(c => c.phone === currentClient);
             if (!client) { showToast('Please login first', 'error'); return; }
             if ((client.balance || 0) < product.price) {
@@ -1448,7 +1448,7 @@ for (var fb = 0; fb < filterBtns.length; fb++) {
 // ============================================================
 async function renderMyItems() {
     var container = document.getElementById('myItemsList');
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
@@ -1471,7 +1471,7 @@ async function renderMyItems() {
 // ============================================================
 async function renderMessages() {
     var container = document.getElementById('messageContainer');
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
@@ -1511,7 +1511,7 @@ async function sendMessage(text) {
 
     if (!isAdmin) {
         setTimeout(async function() {
-            await loadAllData();
+            // // // // // await loadAllData();
             var adminNames = cachedAdmins.map(function(a) { return a.name; });
             var randomAdmin = adminNames.length > 0 ? adminNames[Math.floor(Math.random() * adminNames.length)] : 'Support Team';
             await addMessageToFirebase({
@@ -1544,7 +1544,7 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 // RENDER REFERRAL
 // ============================================================
 async function renderReferral() {
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
@@ -1613,7 +1613,7 @@ document.getElementById('shareReferralBtn').addEventListener('click', function()
 // RENDER PROFILE
 // ============================================================
 async function renderProfile() {
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var tier = getTier(client.totalInvested || 0);
@@ -1624,7 +1624,7 @@ async function renderProfile() {
 // RENDER DEPOSIT
 // ============================================================
 async function renderDeposit() {
-    await loadAllData();
+    // // // // // await loadAllData();
     if (cachedContacts.length === 0) {
         document.getElementById('currentAccountNumber').textContent = 'No accounts available';
         document.getElementById('currentAccountName').textContent = 'Contact admin';
@@ -1655,7 +1655,7 @@ document.getElementById('depositForm').addEventListener('submit', async function
     var name = document.getElementById('depositName').value.trim();
     var msg = document.getElementById('depositMsg');
 
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) { msg.textContent = 'Please login first.'; return; }
 
@@ -1701,7 +1701,7 @@ document.getElementById('depositForm').addEventListener('submit', async function
 // RENDER WITHDRAW
 // ============================================================
 async function renderWithdraw() {
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (client) {
         document.getElementById('withdrawBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
@@ -1732,7 +1732,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
     var msg = document.getElementById('withdrawMsg');
 
     if (!currentClient) { msg.textContent = 'Please login first.'; return; }
-    await loadAllData();
+    // // // // // await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
@@ -1829,7 +1829,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
 async function renderAdminDashboard() {
     document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
-    await loadAllData();
+    // // // // // await loadAllData();
     document.getElementById('adminTotalClients').textContent = cachedClients.length;
 
     var pendingDeposits = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -1879,7 +1879,7 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadAllData();
+                // // // // // await loadAllData();
                 var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 var newBal = (client.balance || 0) + val;
@@ -1906,7 +1906,7 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadAllData();
+                // // // // // await loadAllData();
                 var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 if ((client.balance || 0) < val) {
@@ -2031,7 +2031,7 @@ document.getElementById('saveWhatsappBtn').addEventListener('click', async funct
 // ============================================================
 async function renderAdminSupport() {
     var container = document.getElementById('adminSupportList');
-    await loadAllData();
+    // // // // // await loadAllData();
     var clientsWithMessages = [];
     for (var m = 0; m < cachedMessages.length; m++) {
         if (clientsWithMessages.indexOf(cachedMessages[m].clientPhone) === -1) {
@@ -2097,7 +2097,7 @@ document.getElementById('adminSendReplyBtn').addEventListener('click', async fun
 // ============================================================
 async function renderAdminDeposits() {
     var container = document.getElementById('adminDepositsList');
-    await loadAllData();
+    // // // // // await loadAllData();
     var pending = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending deposits.</div>';
@@ -2131,7 +2131,7 @@ async function renderAdminDeposits() {
             return async function() {
                 var deposit = cachedDeposits.find(function(d) { return d.id === id; });
                 if (!deposit) return;
-                await loadAllData();
+                // // // // // await loadAllData();
                 var client = cachedClients.find(function(c) { return c.phone === deposit.clientPhone; });
                 if (client) {
                     var newBal = (client.balance || 0) + deposit.amount;
@@ -2192,7 +2192,7 @@ async function renderAdminDeposits() {
 // ============================================================
 async function renderAdminWithdrawals() {
     var container = document.getElementById('adminWithdrawalsList');
-    await loadAllData();
+    // // // // // await loadAllData();
     var pending = cachedWithdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending withdrawals.</div>';
@@ -2235,7 +2235,7 @@ async function renderAdminWithdrawals() {
                 if (confirm('Reject this withdrawal?')) {
                     var withdrawal = cachedWithdrawals.find(function(d) { return d.id === id; });
                     if (withdrawal) {
-                        await loadAllData();
+                        // // // // // await loadAllData();
                         var client = cachedClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
                         if (client) {
                             var refund = withdrawal.amount + withdrawal.fee;
@@ -2256,7 +2256,7 @@ async function renderAdminWithdrawals() {
 // ============================================================
 async function renderAdminList() {
     var container = document.getElementById('adminList');
-    await loadAllData();
+    // // // // // await loadAllData();
     if (cachedAdmins.length === 0) {
         container.innerHTML = '<div class="text-muted">No admins.</div>';
         return;
@@ -2287,7 +2287,7 @@ document.getElementById('addAdminBtn').addEventListener('click', async function(
     var pass = document.getElementById('newAdminPass').value.trim();
 
     if (!name || !user || !pass) { alert('Please fill all fields.'); return; }
-    await loadAllData();
+    // // // // // await loadAllData();
     for (var a = 0; a < cachedAdmins.length; a++) {
         if (cachedAdmins[a].username === user) {
             alert('Username already exists.');
@@ -2358,7 +2358,7 @@ window.addEventListener('load', function() {
             if (session.client) {
                 currentClient = session.client;
                 // Load data in background
-                loadAllData().then(function() {
+                setTimeout(function() { loadAllData(); }, 100);
                     navigate('client-dashboard');
                 });
                 return;
@@ -2366,7 +2366,7 @@ window.addEventListener('load', function() {
             if (session.admin) {
                 isAdmin = true;
                 currentAdminName = session.adminName || 'Support Team';
-                loadAllData().then(function() {
+                setTimeout(function() { loadAllData(); }, 100);
                     navigate('admin-dashboard');
                 });
                 return;
