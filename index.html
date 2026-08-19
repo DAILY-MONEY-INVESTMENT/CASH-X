@@ -210,7 +210,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
 </div>
 
-<!-- FLOATING SUPPORT BUTTON (ADMIN ONLY) -->
+<!-- FLOATING SUPPORT BUTTON -->
 <div class="floating-support" id="floatingSupport">
     <a href="#" data-nav="admin-dashboard" title="Admin Support">💬</a>
 </div>
@@ -241,7 +241,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
         <div class="card" style="text-align:center;padding:12px;">
             <div style="font-size:24px;">👥</div>
-            <div style="color:#2ecc71;font-weight:700;" id="homeUsers">0</div>
+            <div style="color:#2ecc71;font-weight:700;" id="homeUsers">673</div>
             <div style="color:#8e9fb1;font-size:11px;">Active Users</div>
         </div>
         <div class="card" style="text-align:center;padding:12px;">
@@ -705,7 +705,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 
 <script>
 // ============================================================
-// FIREBASE CONFIG - YOUR PROJECT
+// FIREBASE CONFIG
 // ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyDy4y1XPoNNL1ky2DwZG5sebZciu87eIjQ",
@@ -717,12 +717,11 @@ const firebaseConfig = {
   measurementId: "G-G2EGSSW6VW"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ============================================================
-// PRODUCTS DATA
+// PRODUCTS
 // ============================================================
 const PRODUCTS = [
 {id:'p7',name:'HP Pavilion 15',brand:'HP',price:5000,daily:1000,duration:30,icon:'💻',status:'sold'},
@@ -750,7 +749,7 @@ const PRODUCTS = [
 ];
 
 // ============================================================
-// GLOBAL VARIABLES
+// GLOBAL
 // ============================================================
 let currentClient = null;
 let isAdmin = false;
@@ -764,9 +763,6 @@ let cachedAdmins = [];
 let dataLoaded = false;
 let loadingData = false;
 
-// ============================================================
-// HELPERS
-// ============================================================
 function generateRefCode() {
     return 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
@@ -793,8 +789,8 @@ function showToast(msg, type) {
 // ============================================================
 // DATA LOADING
 // ============================================================
-async function loadAllData(force) {
-    if (dataLoaded && !force) return;
+async function loadAllData() {
+    if (dataLoaded) return;
     if (loadingData) return;
     loadingData = true;
     try {
@@ -828,69 +824,59 @@ async function loadAllData(force) {
 }
 
 // ============================================================
-// FIREBASE WRITE OPERATIONS
+// FIREBASE WRITE
 // ============================================================
 async function addClientToFirebase(clientData) {
     try {
         const docRef = await db.collection('clients').add(clientData);
-        const newClient = { id: docRef.id, ...clientData };
-        cachedClients.unshift(newClient);
+        cachedClients.unshift({ id: docRef.id, ...clientData });
         return docRef.id;
-    } catch(e) { console.error('Error adding client:', e); return null; }
+    } catch(e) { return null; }
 }
 
 async function updateClientInFirebase(clientId, updates) {
     try {
         await db.collection('clients').doc(clientId).update(updates);
-        const idx = cachedClients.findIndex(c => c.id === clientId);
-        if (idx !== -1) { cachedClients[idx] = { ...cachedClients[idx], ...updates }; }
         return true;
-    } catch(e) { console.error('Error updating client:', e); return false; }
+    } catch(e) { return false; }
 }
 
-async function addDepositToFirebase(depositData) {
+async function addDepositToFirebase(data) {
     try {
-        const docRef = await db.collection('deposits').add(depositData);
-        const newDeposit = { id: docRef.id, ...depositData };
-        cachedDeposits.unshift(newDeposit);
+        const docRef = await db.collection('deposits').add(data);
+        cachedDeposits.unshift({ id: docRef.id, ...data });
         return docRef.id;
-    } catch(e) { console.error('Error adding deposit:', e); return null; }
+    } catch(e) { return null; }
 }
 
-async function updateDepositInFirebase(depositId, updates) {
+async function updateDepositInFirebase(id, updates) {
     try {
-        await db.collection('deposits').doc(depositId).update(updates);
-        const idx = cachedDeposits.findIndex(d => d.id === depositId);
-        if (idx !== -1) { cachedDeposits[idx] = { ...cachedDeposits[idx], ...updates }; }
+        await db.collection('deposits').doc(id).update(updates);
         return true;
-    } catch(e) { console.error('Error updating deposit:', e); return false; }
+    } catch(e) { return false; }
 }
 
-async function addWithdrawalToFirebase(withdrawalData) {
+async function addWithdrawalToFirebase(data) {
     try {
-        const docRef = await db.collection('withdrawals').add(withdrawalData);
-        const newWithdrawal = { id: docRef.id, ...withdrawalData };
-        cachedWithdrawals.unshift(newWithdrawal);
+        const docRef = await db.collection('withdrawals').add(data);
+        cachedWithdrawals.unshift({ id: docRef.id, ...data });
         return docRef.id;
-    } catch(e) { console.error('Error adding withdrawal:', e); return null; }
+    } catch(e) { return null; }
 }
 
-async function updateWithdrawalInFirebase(withdrawalId, updates) {
+async function updateWithdrawalInFirebase(id, updates) {
     try {
-        await db.collection('withdrawals').doc(withdrawalId).update(updates);
-        const idx = cachedWithdrawals.findIndex(d => d.id === withdrawalId);
-        if (idx !== -1) { cachedWithdrawals[idx] = { ...cachedWithdrawals[idx], ...updates }; }
+        await db.collection('withdrawals').doc(id).update(updates);
         return true;
-    } catch(e) { console.error('Error updating withdrawal:', e); return false; }
+    } catch(e) { return false; }
 }
 
-async function addMessageToFirebase(messageData) {
+async function addMessageToFirebase(data) {
     try {
-        const docRef = await db.collection('messages').add(messageData);
-        const newMsg = { id: docRef.id, ...messageData };
-        cachedMessages.push(newMsg);
+        const docRef = await db.collection('messages').add(data);
+        cachedMessages.push({ id: docRef.id, ...data });
         return docRef.id;
-    } catch(e) { console.error('Error adding message:', e); return null; }
+    } catch(e) { return null; }
 }
 
 // ============================================================
@@ -1013,7 +999,7 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
     }
     if (pass.length < 4) { msg.textContent = 'Password must be at least 4 characters.'; return; }
 
-    await loadAllData(false);
+    await loadAllData();
     if (cachedClients.find(c => c.phone === phone)) {
         msg.textContent = 'Phone already registered.';
         return;
@@ -1042,12 +1028,11 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
 
     var clientId = await addClientToFirebase(clientData);
     if (clientId) {
-        var stats = await db.collection('system').doc('stats').get();
-        var currentCount = stats.exists ? (stats.data().activeUsers || 673) : 673;
-        await db.collection('system').doc('stats').set({ activeUsers: currentCount + 1 }, { merge: true });
         msg.style.color = '#2ecc71';
         msg.textContent = '✅ Registration successful! You received UGX 4,000 bonus!';
         setTimeout(function() { navigate('client-login'); }, 1500);
+        // Update active users display
+        document.getElementById('homeUsers').textContent = cachedClients.length + 1;
     } else {
         msg.textContent = 'Registration failed. Please try again.';
     }
@@ -1067,7 +1052,7 @@ document.getElementById('clientLoginForm').addEventListener('submit', async func
         return;
     }
 
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === phone);
     if (!client || client.password !== pass) {
         msg.textContent = 'Invalid phone or password.';
@@ -1090,7 +1075,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
     var pass = document.getElementById('adminLoginPass').value.trim();
     var msg = document.getElementById('adminLoginMsg');
 
-    await loadAllData(false);
+    await loadAllData();
     var admin = cachedAdmins.find(a => a.username === user && a.password === pass);
     if (admin) {
         isAdmin = true;
@@ -1104,7 +1089,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async funct
             var defaultAdmin = cachedAdmins.find(a => a.username === 'admin');
             if (!defaultAdmin) {
                 await db.collection('admins').add({ name: 'Super Admin', username: 'admin', password: 'admin123' });
-                await loadAllData(true);
+                await loadAllData();
             }
             isAdmin = true;
             currentAdminName = name || 'Super Admin';
@@ -1137,24 +1122,24 @@ document.getElementById('adminLogoutBtn').addEventListener('click', function() {
 // ============================================================
 // WELCOME MODAL
 // ============================================================
-var modalShown = localStorage.getItem('cashx_welcome_shown_v14');
+var modalShown = localStorage.getItem('cashx_welcome_shown_final');
 if (!modalShown) {
     document.getElementById('welcomeModal').classList.remove('hidden');
 }
 document.getElementById('closeModalBtn').addEventListener('click', function() {
     document.getElementById('welcomeModal').classList.add('hidden');
-    localStorage.setItem('cashx_welcome_shown_v14', 'true');
+    localStorage.setItem('cashx_welcome_shown_final', 'true');
 });
 document.getElementById('acceptModalBtn').addEventListener('click', function() {
     document.getElementById('welcomeModal').classList.add('hidden');
-    localStorage.setItem('cashx_welcome_shown_v14', 'true');
+    localStorage.setItem('cashx_welcome_shown_final', 'true');
 });
 
 // ============================================================
 // WHATSAPP
 // ============================================================
 async function updateWhatsAppButton() {
-    await loadAllData(false);
+    await loadAllData();
     var whatsapp = cachedContacts.length > 0 ? cachedContacts[0].number : '0704072227';
     var btn = document.getElementById('whatsappFloatBtn');
     btn.href = 'https://wa.me/256' + whatsapp.replace(/\D/g, '');
@@ -1165,10 +1150,7 @@ updateWhatsAppButton();
 // HOME STATS
 // ============================================================
 async function updateHomeStats() {
-    await loadAllData(false);
-    var stats = await db.collection('system').doc('stats').get();
-    var activeUsers = stats.exists ? (stats.data().activeUsers || 673) : 673;
-    document.getElementById('homeUsers').textContent = activeUsers;
+    await loadAllData();
     var totalInv = 0, totalProf = 0;
     for (var c = 0; c < cachedClients.length; c++) {
         totalInv += (cachedClients[c].totalInvested || 0);
@@ -1179,65 +1161,10 @@ async function updateHomeStats() {
 }
 
 // ============================================================
-// DAILY EARNINGS
-// ============================================================
-async function processDailyEarnings() {
-    var now = new Date();
-    await loadAllData(false);
-    for (var c = 0; c < cachedClients.length; c++) {
-        var client = cachedClients[c];
-        if (client.products && client.products.length > 0) {
-            var todayEarnings = 0;
-            var updated = false;
-            for (var p = 0; p < client.products.length; p++) {
-                var product = client.products[p];
-                if (product.status === 'active') {
-                    var lastEarning = product.lastEarning || product.purchaseDate;
-                    var lastDate = new Date(lastEarning);
-                    var hoursDiff = (now - lastDate) / (1000 * 60 * 60);
-                    if (hoursDiff >= 24) {
-                        var earning = product.daily;
-                        todayEarnings += earning;
-                        product.balance = (product.balance || 0) + earning;
-                        product.dailyEarned = (product.dailyEarned || 0) + earning;
-                        product.lastEarning = now.toISOString();
-                        updated = true;
-                        if (!client.activities) client.activities = [];
-                        client.activities.push({
-                            action: 'Daily Earnings from ' + product.name,
-                            detail: 'UGX ' + earning.toLocaleString(),
-                            status: 'successful',
-                            date: now.toISOString()
-                        });
-                    }
-                }
-            }
-            if (updated) {
-                client.balance = (client.balance || 0) + todayEarnings;
-                client.totalProfit = (client.totalProfit || 0) + todayEarnings;
-                client.todayEarnings = (client.todayEarnings || 0) + todayEarnings;
-                client.lastEarningDate = now.toISOString();
-                await updateClientInFirebase(client.id, {
-                    balance: client.balance,
-                    totalProfit: client.totalProfit,
-                    todayEarnings: client.todayEarnings,
-                    lastEarningDate: client.lastEarningDate,
-                    products: client.products,
-                    activities: client.activities
-                });
-            }
-        }
-    }
-}
-
-setInterval(processDailyEarnings, 60 * 60 * 1000);
-setTimeout(processDailyEarnings, 5000);
-
-// ============================================================
 // RENDER DASHBOARD
 // ============================================================
 async function renderDashboard() {
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var tier = getTier(client.totalInvested || 0);
@@ -1315,7 +1242,7 @@ function renderProducts() {
             var productId = this.dataset.id;
             var product = PRODUCTS.find(function(p) { return p.id === productId; });
             if (!product) return;
-            await loadAllData(false);
+            await loadAllData();
             var client = cachedClients.find(c => c.phone === currentClient);
             if (!client) { showToast('Please login first', 'error'); return; }
             if ((client.balance || 0) < product.price) {
@@ -1376,7 +1303,7 @@ for (var fb = 0; fb < filterBtns.length; fb++) {
 // ============================================================
 async function renderMyItems() {
     var container = document.getElementById('myItemsList');
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var items = client.products || [];
@@ -1397,7 +1324,7 @@ async function renderMyItems() {
 // ============================================================
 async function renderMessages() {
     var container = document.getElementById('messageContainer');
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var adminNames = cachedAdmins.map(function(a) { return a.name; });
@@ -1434,7 +1361,7 @@ async function sendMessage(text) {
     renderMessages();
     if (!isAdmin) {
         setTimeout(async function() {
-            await loadAllData(false);
+            await loadAllData();
             var adminNames = cachedAdmins.map(function(a) { return a.name; });
             var randomAdmin = adminNames.length > 0 ? adminNames[Math.floor(Math.random() * adminNames.length)] : 'Support Team';
             await addMessageToFirebase({
@@ -1467,7 +1394,7 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 // RENDER REFERRAL
 // ============================================================
 async function renderReferral() {
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     document.getElementById('referralCodeDisplay').textContent = client.refCode || '------';
@@ -1535,7 +1462,7 @@ document.getElementById('shareReferralBtn').addEventListener('click', function()
 // RENDER PROFILE
 // ============================================================
 async function renderProfile() {
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
     var tier = getTier(client.totalInvested || 0);
@@ -1546,7 +1473,7 @@ async function renderProfile() {
 // RENDER DEPOSIT
 // ============================================================
 async function renderDeposit() {
-    await loadAllData(false);
+    await loadAllData();
     if (cachedContacts.length === 0) {
         document.getElementById('currentAccountNumber').textContent = 'No accounts available';
         document.getElementById('currentAccountName').textContent = 'Contact admin';
@@ -1576,7 +1503,7 @@ document.getElementById('depositForm').addEventListener('submit', async function
     var name = document.getElementById('depositName').value.trim();
     var msg = document.getElementById('depositMsg');
 
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) { msg.textContent = 'Please login first.'; return; }
 
@@ -1622,7 +1549,7 @@ document.getElementById('depositForm').addEventListener('submit', async function
 // RENDER WITHDRAW
 // ============================================================
 async function renderWithdraw() {
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (client) {
         document.getElementById('withdrawBalanceDisplay').textContent = 'UGX ' + (client.balance || 0).toLocaleString();
@@ -1653,7 +1580,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
     var msg = document.getElementById('withdrawMsg');
 
     if (!currentClient) { msg.textContent = 'Please login first.'; return; }
-    await loadAllData(false);
+    await loadAllData();
     var client = cachedClients.find(c => c.phone === currentClient);
     if (!client) return;
 
@@ -1745,12 +1672,12 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
 });
 
 // ============================================================
-// ADMIN DASHBOARD - FULL
+// ADMIN DASHBOARD
 // ============================================================
 async function renderAdminDashboard() {
     document.getElementById('adminNameDisplayHeader').textContent = currentAdminName || 'Admin';
 
-    await loadAllData(false);
+    await loadAllData();
     document.getElementById('adminTotalClients').textContent = cachedClients.length;
 
     var pendingDeposits = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
@@ -1800,7 +1727,7 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadAllData(false);
+                await loadAllData();
                 var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 var newBal = (client.balance || 0) + val;
@@ -1827,7 +1754,7 @@ function renderAdminClients() {
                 if (!amount) return;
                 var val = parseFloat(amount);
                 if (isNaN(val) || val <= 0) { alert('Invalid amount.'); return; }
-                await loadAllData(false);
+                await loadAllData();
                 var client = cachedClients.find(c => c.phone === phone);
                 if (!client) return;
                 if ((client.balance || 0) < val) {
@@ -1890,7 +1817,7 @@ function renderAdminContacts() {
             return async function() {
                 if (confirm('Delete this account?')) {
                     await db.collection('contacts').doc(id).delete();
-                    await loadAllData(true);
+                    await loadAllData();
                     renderAdminContacts();
                     showToast('Account deleted.', 'info');
                 }
@@ -1923,11 +1850,11 @@ document.getElementById('contactForm').addEventListener('submit', async function
 
     if (id) {
         await db.collection('contacts').doc(id).update({ name: name, number: number, type: type });
-        await loadAllData(true);
+        await loadAllData();
         showToast('Account updated!', 'success');
     } else {
         await db.collection('contacts').add({ name: name, number: number, type: type });
-        await loadAllData(true);
+        await loadAllData();
         showToast('Account added!', 'success');
     }
     document.getElementById('contactFormContainer').style.display = 'none';
@@ -1942,7 +1869,7 @@ document.getElementById('saveWhatsappBtn').addEventListener('click', async funct
     } else {
         await db.collection('contacts').add({ name: 'WhatsApp Support', number: number, type: 'WhatsApp' });
     }
-    await loadAllData(true);
+    await loadAllData();
     updateWhatsAppButton();
     showToast('✅ WhatsApp number saved!', 'success');
 });
@@ -1952,7 +1879,7 @@ document.getElementById('saveWhatsappBtn').addEventListener('click', async funct
 // ============================================================
 async function renderAdminSupport() {
     var container = document.getElementById('adminSupportList');
-    await loadAllData(false);
+    await loadAllData();
     var clientsWithMessages = [];
     for (var m = 0; m < cachedMessages.length; m++) {
         if (clientsWithMessages.indexOf(cachedMessages[m].clientPhone) === -1) {
@@ -2008,7 +1935,7 @@ document.getElementById('adminSendReplyBtn').addEventListener('click', async fun
 
     document.getElementById('adminReplyMessage').value = '';
     document.getElementById('adminReplyContainer').style.display = 'none';
-    await loadAllData(true);
+    await loadAllData();
     renderAdminSupport();
     showToast('✅ Reply sent!', 'success');
 });
@@ -2018,7 +1945,7 @@ document.getElementById('adminSendReplyBtn').addEventListener('click', async fun
 // ============================================================
 async function renderAdminDeposits() {
     var container = document.getElementById('adminDepositsList');
-    await loadAllData(false);
+    await loadAllData();
     var pending = cachedDeposits.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending deposits.</div>';
@@ -2052,7 +1979,7 @@ async function renderAdminDeposits() {
             return async function() {
                 var deposit = cachedDeposits.find(function(d) { return d.id === id; });
                 if (!deposit) return;
-                await loadAllData(false);
+                await loadAllData();
                 var client = cachedClients.find(function(c) { return c.phone === deposit.clientPhone; });
                 if (client) {
                     var newBal = (client.balance || 0) + deposit.amount;
@@ -2112,7 +2039,7 @@ async function renderAdminDeposits() {
 // ============================================================
 async function renderAdminWithdrawals() {
     var container = document.getElementById('adminWithdrawalsList');
-    await loadAllData(false);
+    await loadAllData();
     var pending = cachedWithdrawals.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
     if (pending.length === 0) {
         container.innerHTML = '<div class="text-muted">No pending withdrawals.</div>';
@@ -2155,7 +2082,7 @@ async function renderAdminWithdrawals() {
                 if (confirm('Reject this withdrawal?')) {
                     var withdrawal = cachedWithdrawals.find(function(d) { return d.id === id; });
                     if (withdrawal) {
-                        await loadAllData(false);
+                        await loadAllData();
                         var client = cachedClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
                         if (client) {
                             var refund = withdrawal.amount + withdrawal.fee;
@@ -2176,7 +2103,7 @@ async function renderAdminWithdrawals() {
 // ============================================================
 async function renderAdminList() {
     var container = document.getElementById('adminList');
-    await loadAllData(false);
+    await loadAllData();
     if (cachedAdmins.length === 0) {
         container.innerHTML = '<div class="text-muted">No admins.</div>';
         return;
@@ -2207,7 +2134,7 @@ document.getElementById('addAdminBtn').addEventListener('click', async function(
     var pass = document.getElementById('newAdminPass').value.trim();
 
     if (!name || !user || !pass) { alert('Please fill all fields.'); return; }
-    await loadAllData(false);
+    await loadAllData();
     for (var a = 0; a < cachedAdmins.length; a++) {
         if (cachedAdmins[a].username === user) {
             alert('Username already exists.');
@@ -2215,7 +2142,7 @@ document.getElementById('addAdminBtn').addEventListener('click', async function(
         }
     }
     await db.collection('admins').add({ name: name, username: user, password: pass });
-    await loadAllData(true);
+    await loadAllData();
     document.getElementById('newAdminName').value = '';
     document.getElementById('newAdminUser').value = '';
     document.getElementById('newAdminPass').value = '';
@@ -2270,13 +2197,13 @@ function checkReferralOnLoad() {
 window.addEventListener('load', function() {
     checkReferralOnLoad();
 
-    var saved = localStorage.getItem('cashx_session_v14');
+    var saved = localStorage.getItem('cashx_session_final');
     if (saved) {
         try {
             var session = JSON.parse(saved);
             if (session.client) {
                 currentClient = session.client;
-                loadAllData(false).then(function() {
+                loadAllData().then(function() {
                     navigate('client-dashboard');
                 });
                 return;
@@ -2284,7 +2211,7 @@ window.addEventListener('load', function() {
             if (session.admin) {
                 isAdmin = true;
                 currentAdminName = session.adminName || 'Support Team';
-                loadAllData(false).then(function() {
+                loadAllData().then(function() {
                     navigate('admin-dashboard');
                 });
                 return;
@@ -2301,7 +2228,7 @@ function saveSession() {
         session.admin = true;
         session.adminName = currentAdminName;
     }
-    localStorage.setItem('cashx_session_v14', JSON.stringify(session));
+    localStorage.setItem('cashx_session_final', JSON.stringify(session));
 }
 
 var origNavigate = navigate;
@@ -2310,10 +2237,8 @@ navigate = function(pageId) {
     if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 };
 
-console.log('🚀 CASH X v14 - Fully Working!');
+console.log('🚀 CASH X FINAL - Fully Working!');
 console.log('👤 Super Admin: admin / admin123');
-console.log('📦 Products: ' + PRODUCTS.length);
-console.log('☁️ Firebase connected');
 </script>
 </body>
 </html>
