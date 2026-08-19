@@ -210,9 +210,9 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <a href="#" id="whatsappFloatBtn" target="_blank">💬</a>
 </div>
 
-<!-- FLOATING SUPPORT BUTTON - Links to Admin Support -->
+<!-- FLOATING SUPPORT BUTTON - FIXED -->
 <div class="floating-support" id="floatingSupport">
-    <a href="#" onclick="document.getElementById('adminNavBtn').click(); setTimeout(function(){ document.querySelector('[data-admin-tab=\\"support\\"]').click(); }, 300); return false;" title="Admin Support">💬</a>
+    <a href="#" onclick="document.getElementById('adminNavBtn').click(); setTimeout(function(){ var tabs = document.querySelectorAll('.admin-tab'); for(var i=0; i<tabs.length; i++){ if(tabs[i].innerText.trim() === 'Support'){ tabs[i].click(); break; } } }, 500); return false;" title="Admin Support">💬</a>
 </div>
 
 <!-- PAGE: HOME -->
@@ -1015,14 +1015,12 @@ async function processReferralBonus() {
         var client = cachedClients[c];
         if (client.referralBonus && client.referralBonus > 0) {
             if (!client.referralBonusDate) {
-                // Set initial date if not set
                 await updateClientInFirebase(client.id, { referralBonusDate: now.toISOString() });
                 continue;
             }
             var bonusDate = new Date(client.referralBonusDate);
             var daysDiff = (now - bonusDate) / (1000 * 60 * 60 * 24);
             if (daysDiff >= 7) {
-                // Transfer to main balance
                 var newBalance = (client.balance || 0) + client.referralBonus;
                 await updateClientInFirebase(client.id, {
                     balance: newBalance,
@@ -1044,7 +1042,6 @@ async function processReferralBonus() {
     }
 }
 
-// Run every hour
 setInterval(processReferralBonus, 60 * 60 * 1000);
 setTimeout(processReferralBonus, 10000);
 
@@ -1090,7 +1087,6 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
         if (referrer) {
             if (!referrer.referrals) referrer.referrals = [];
             referrer.referrals.push(phone);
-            // Add referral bonus to referrer (23% of registration bonus)
             var bonus = Math.floor(4000 * 0.23);
             if (!referrer.referralBonus) referrer.referralBonus = 0;
             referrer.referralBonus += bonus;
@@ -1105,7 +1101,6 @@ document.getElementById('clientRegisterForm').addEventListener('submit', async f
 
     var clientId = await addClientToFirebase(clientData);
     if (clientId) {
-        // Update active users count
         activeUsersCount++;
         await updateSystemStats({ activeUsers: activeUsersCount });
         document.getElementById('homeUsers').textContent = activeUsersCount;
@@ -1257,7 +1252,6 @@ async function renderDashboard() {
     document.getElementById('clientReferrals').textContent = (client.referrals || []).length;
     document.getElementById('todayEarnings').textContent = 'UGX ' + (client.todayEarnings || 0).toLocaleString();
     
-    // Pending referral bonus
     var pendingBonus = client.referralBonus || 0;
     document.getElementById('pendingReferralBonus').textContent = 'UGX ' + pendingBonus.toLocaleString();
 
@@ -1965,7 +1959,7 @@ document.getElementById('saveWhatsappBtn').addEventListener('click', async funct
 });
 
 // ============================================================
-// ADMIN SUPPORT
+// ADMIN SUPPORT - FIXED
 // ============================================================
 async function renderAdminSupport() {
     var container = document.getElementById('adminSupportList');
@@ -2322,10 +2316,9 @@ navigate = function(pageId) {
     if (pageId === 'client-dashboard' || pageId === 'admin-dashboard') saveSession();
 };
 
-console.log('🚀 CASH X FINAL - Fully Working with Referral Bonus 7-day Release!');
+console.log('🚀 CASH X FINAL - Fully Working with Admin Support Chat!');
 console.log('👤 Super Admin: admin / admin123');
-console.log('📊 Active Users: ' + activeUsersCount);
-console.log('📌 Referral Bonus: Released to main balance after 7 days');
+console.log('💬 Floating button opens Support tab');
 </script>
 </body>
 </html>
