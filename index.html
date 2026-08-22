@@ -189,6 +189,19 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 .floating-support a{display:flex;align-items:center;justify-content:center;width:56px;height:56px;background:linear-gradient(135deg,#00d4ff,#7b2ffc);border-radius:50%;box-shadow:0 4px 20px rgba(0,212,255,0.4);transition:all .3s ease;text-decoration:none;font-size:28px;animation:float 3s ease-in-out infinite;color:#fff;border:2px solid rgba(255,255,255,0.2)}
 .floating-support a:hover{transform:scale(1.1)}
 .floating-support.show{display:block}
+.recharge-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:12px 0}
+.recharge-amount{background:rgba(26,10,10,0.6);border:1px solid rgba(46,204,113,0.2);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .3s ease;color:#fff}
+.recharge-amount:hover{border-color:#2ecc71;transform:scale(1.02)}
+.recharge-amount.selected{border-color:#2ecc71;background:rgba(46,204,113,0.15)}
+.recharge-amount .amount{font-size:18px;font-weight:700;color:#2ecc71}
+.recharge-amount .label{font-size:10px;color:#8e9fb1}
+.payment-method-btn{background:rgba(26,10,10,0.6);border:1px solid rgba(231,76,60,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .3s ease;color:#fff;flex:1}
+.payment-method-btn:hover{border-color:#f39c12;transform:scale(1.02)}
+.payment-method-btn.selected{border-color:#2ecc71;background:rgba(46,204,113,0.1)}
+.payment-method-btn .icon{font-size:28px;display:block;margin-bottom:4px}
+.payment-method-btn .name{font-size:14px;font-weight:600}
+.step-list-recharge{padding-left:20px;color:#b0c0d0;font-size:14px}
+.step-list-recharge li{margin-bottom:6px;list-style-type:decimal}
 </style>
 </head>
 <body>
@@ -371,7 +384,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         </div>
     </div>
     <div class="quick-actions">
-        <div class="quick-action" data-nav="client-deposit"><span class="icon">💳</span><span class="label">Deposit</span></div>
+        <div class="quick-action" data-nav="client-recharge"><span class="icon">💳</span><span class="label">Recharge</span></div>
         <div class="quick-action" data-nav="client-withdraw"><span class="icon">🏦</span><span class="label">Withdraw</span></div>
         <div class="quick-action" data-nav="client-products"><span class="icon">🛒</span><span class="label">Invest</span></div>
         <div class="quick-action" data-nav="client-messages"><span class="icon">💬</span><span class="label">Support</span></div>
@@ -426,11 +439,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         <span id="adminNameDisplay" style="color:#8e9fb1;">Support Team</span>
     </div>
     <div id="messageContainer">
-        <div class="message-bubble">
-            <div class="sender">CASH X Support</div>
-            <div class="text">Hello and welcome! 😊 I'm here to help you with deposits, withdrawals, investments, and referral commission. What can I help you with today?</div>
-            <div class="time">Just now</div>
-        </div>
+        <div class="message-bubble client"><div class="sender">Support Team</div><div class="text">Hello and welcome! 😊 I'm here to help you with deposits, withdrawals, investments, and referral commission. What can I help you with today?</div><div class="time">Just now</div></div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:8px;">
         <button class="btn btn-sm btn-outline quick-msg" data-msg="How do I deposit money?">💳 How do I deposit money?</button>
@@ -485,44 +494,90 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <button class="btn btn-danger btn-block mt-20" id="clientLogoutBtn">Logout</button>
 </div>
 
-<!-- PAGE: DEPOSIT -->
-<div id="page-client-deposit" class="page">
+<!-- PAGE: RECHARGE (DEPOSIT) -->
+<div id="page-client-recharge" class="page">
     <div class="header">
-        <div class="logo" style="font-size:22px;">💳 Deposit</div>
+        <div class="logo" style="font-size:22px;">💳 Recharge</div>
         <button class="btn btn-sm btn-ghost" data-nav="client-dashboard">← Back</button>
     </div>
-    <h2 style="margin:16px 0 8px;color:#2ecc71;">Make a Deposit</h2>
-    <div class="card" style="border-color:rgba(46,204,113,0.3);">
-        <p style="color:#b0c0d0;font-size:14px;">⚠️ <strong>Important:</strong> You MUST deposit using the phone number you registered with.</p>
+    <h2 style="margin:16px 0 8px;color:#2ecc71;">Recharge Your Wallet</h2>
+    
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <div class="payment-method-btn" data-method="MTN" onclick="selectPaymentMethod('MTN')">
+            <span class="icon">📱</span>
+            <span class="name">MTN</span>
+            <span style="font-size:10px;color:#8e9fb1;">Mobile Money</span>
+        </div>
+        <div class="payment-method-btn" data-method="Airtel" onclick="selectPaymentMethod('Airtel')">
+            <span class="icon">📱</span>
+            <span class="name">Airtel</span>
+            <span style="font-size:10px;color:#8e9fb1;">Mobile Money</span>
+        </div>
     </div>
-    <h3 style="margin:16px 0 8px;color:#8e9fb1;">📋 Send to This Account</h3>
-    <div id="depositAccountDisplay" class="account-display">
-        <div class="label">Account Number</div>
-        <div class="number" id="currentAccountNumber">Loading...</div>
-        <div class="name-display" id="currentAccountName">Account Name</div>
-        <div class="provider" id="currentAccountProvider">MTN</div>
+
+    <div id="paymentInfo" style="display:none;background:rgba(46,204,113,0.05);border:1px solid rgba(46,204,113,0.2);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#8e9fb1;">Send exactly</span>
+            <span style="color:#2ecc71;font-weight:700;font-size:20px;" id="displayAmount">UGX 0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#8e9fb1;">via</span>
+            <span style="color:#fff;font-weight:600;" id="displayMethod">MTN Mobile Money</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#8e9fb1;">Airtel/MTN number</span>
+            <span style="color:#fff;font-weight:600;" id="displayNumber">Loading...</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+            <span style="color:#8e9fb1;">Account name</span>
+            <span style="color:#fff;font-weight:600;" id="displayName">Loading...</span>
+        </div>
     </div>
-    <button class="btn btn-sm btn-outline" id="refreshAccountBtn" style="margin-bottom:16px;">🔄 Get New Account</button>
+
+    <h3 style="color:#8e9fb1;font-size:14px;margin-bottom:8px;">Select Amount</h3>
+    <div class="recharge-grid">
+        <div class="recharge-amount" data-amount="30000" onclick="selectAmount(30000)"><div class="amount">UGX 30,000</div></div>
+        <div class="recharge-amount" data-amount="50000" onclick="selectAmount(50000)"><div class="amount">UGX 50,000</div></div>
+        <div class="recharge-amount" data-amount="75000" onclick="selectAmount(75000)"><div class="amount">UGX 75,000</div></div>
+        <div class="recharge-amount" data-amount="100000" onclick="selectAmount(100000)"><div class="amount">UGX 100,000</div></div>
+        <div class="recharge-amount" data-amount="150000" onclick="selectAmount(150000)"><div class="amount">UGX 150,000</div></div>
+        <div class="recharge-amount" data-amount="200000" onclick="selectAmount(200000)"><div class="amount">UGX 200,000</div></div>
+        <div class="recharge-amount" data-amount="500000" onclick="selectAmount(500000)"><div class="amount">UGX 500,000</div></div>
+        <div class="recharge-amount" data-amount="700000" onclick="selectAmount(700000)"><div class="amount">UGX 700,000</div></div>
+        <div class="recharge-amount" data-amount="1000000" onclick="selectAmount(1000000)"><div class="amount">UGX 1,000,000</div></div>
+    </div>
+
+    <div class="form-group">
+        <label>Or type your own amount (UGX)</label>
+        <input type="number" id="customAmount" placeholder="e.g. 75000" min="15000" oninput="selectCustomAmount(this.value)" />
+        <div style="color:#8e9fb1;font-size:12px;margin-top:4px;">Minimum: UGX 15,000</div>
+    </div>
+
+    <div id="instructions" style="display:none;background:rgba(243,156,18,0.05);border:1px solid rgba(243,156,18,0.2);border-radius:12px;padding:16px;margin-top:16px;">
+        <h4 style="color:#f39c12;margin-bottom:8px;">📋 How to send with <span id="instructionMethod">Airtel</span></h4>
+        <ol class="step-list-recharge" id="instructionSteps">
+            <li>Dial <strong>*185#</strong> on your Airtel line</li>
+            <li>Choose <strong>1 – Send Money</strong></li>
+            <li>Choose <strong>1 – To Airtel Money user</strong></li>
+            <li>Enter the company number: <strong id="instructionNumber">Loading...</strong></li>
+            <li>Enter the exact amount: <strong id="instructionAmount">UGX 0</strong></li>
+            <li>Confirm the recipient name: <strong id="instructionName">Loading...</strong></li>
+            <li>Enter your Airtel Money PIN to complete</li>
+        </ol>
+    </div>
+
     <div class="card" style="margin-top:16px;border-color:rgba(46,204,113,0.2);">
-        <h4 style="color:#2ecc71;">📝 Deposit Details</h4>
-        <form id="depositForm">
+        <h4 style="color:#2ecc71;">📝 Transaction ID or full SMS</h4>
+        <p style="color:#8e9fb1;font-size:13px;margin-bottom:12px;">Paste the transaction ID (e.g. 1234567890) or the full confirmation SMS</p>
+        <form id="rechargeForm">
             <div class="form-group">
-                <label>Amount (UGX)</label>
-                <input type="number" id="depositAmount" placeholder="15000" min="15000" required />
-                <div style="color:#8e9fb1;font-size:12px;margin-top:4px;">Minimum: UGX 15,000</div>
+                <label>Transaction ID / SMS</label>
+                <input type="text" id="transactionId" placeholder="Paste the transaction ID from the confirmation SMS" required />
             </div>
-            <div class="form-group">
-                <label>Your Registered Phone Number</label>
-                <input type="tel" id="depositSender" placeholder="0700000000" required minlength="10" maxlength="10" />
-                <div style="color:#8e9fb1;font-size:12px;margin-top:4px;">Must match your registered number</div>
-            </div>
-            <div class="form-group">
-                <label>Sender Name</label>
-                <input type="text" id="depositName" placeholder="Enter your full name" required />
-            </div>
-            <button type="submit" class="btn btn-success btn-block">Submit Deposit</button>
+            <button type="submit" class="btn btn-success btn-block">Submit Recharge</button>
         </form>
-        <div id="depositMsg" style="color:#e74c3c;margin-top:10px;"></div>
+        <div id="rechargeMsg" style="color:#e74c3c;margin-top:10px;"></div>
+        <div style="color:#8e9fb1;font-size:12px;margin-top:8px;text-align:center;">After submitting you return to the dashboard and wait for admin approval.</div>
     </div>
 </div>
 
@@ -630,6 +685,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         <button class="admin-tab" data-admin-tab="accounts" style="flex:1;padding:10px;border:none;background:transparent;color:#8e9fb1;border-radius:30px;cursor:pointer;font-weight:600;white-space:nowrap;">Accounts</button>
         <button class="admin-tab" data-admin-tab="deposits" style="flex:1;padding:10px;border:none;background:transparent;color:#8e9fb1;border-radius:30px;cursor:pointer;font-weight:600;white-space:nowrap;">Deposits</button>
         <button class="admin-tab" data-admin-tab="withdrawals" style="flex:1;padding:10px;border:none;background:transparent;color:#8e9fb1;border-radius:30px;cursor:pointer;font-weight:600;white-space:nowrap;">Withdrawals</button>
+        <button class="admin-tab" data-admin-tab="recharge" style="flex:1;padding:10px;border:none;background:transparent;color:#8e9fb1;border-radius:30px;cursor:pointer;font-weight:600;white-space:nowrap;">Recharge</button>
         <button class="admin-tab" data-admin-tab="support" style="flex:1;padding:10px;border:none;background:transparent;color:#8e9fb1;border-radius:30px;cursor:pointer;font-weight:600;white-space:nowrap;">Support</button>
         <button class="admin-tab" data-admin-tab="admins" style="flex:1;padding:10px;border:none;background:transparent;color:#8e9fb1;border-radius:30px;cursor:pointer;font-weight:600;white-space:nowrap;">Admins</button>
     </div>
@@ -646,7 +702,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
                 <input type="hidden" id="contactEditId" />
                 <div class="form-group">
                     <label>Account Name</label>
-                    <input type="text" id="contactName" placeholder="e.g. John's MTN" required />
+                    <input type="text" id="contactName" placeholder="e.g. MARIAM NAYIGA" required />
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -684,6 +740,10 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
         <h3 style="color:#f39c12;">🏦 Pending Withdrawals</h3>
         <div id="adminWithdrawalsList"><div class="text-muted">No pending withdrawals</div></div>
     </div>
+    <div id="adminTab-recharge" class="admin-content" style="display:none;">
+        <h3 style="color:#2ecc71;">📋 Pending Recharges</h3>
+        <div id="adminRechargeList"><div class="text-muted">No pending recharges</div></div>
+    </div>
     <div id="adminTab-support" class="admin-content" style="display:none;">
         <h3 style="color:#2ecc71;">💬 Support Conversations</h3>
         <div id="adminSupportList"><div class="text-muted">No support messages</div></div>
@@ -702,7 +762,6 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
     <div id="adminTab-admins" class="admin-content" style="display:none;">
         <h3 style="color:#2ecc71;">👥 Manage Admins</h3>
         
-        <!-- Change Password Section -->
         <div class="card" style="border-color:rgba(46,204,113,0.2);">
             <h4 style="color:#f39c12;">🔑 Change My Password</h4>
             <div class="form-group">
@@ -721,7 +780,6 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <div id="passwordChangeMsg" style="margin-top:10px;color:#ff6b5a;"></div>
         </div>
         
-        <!-- Add Admin Section -->
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;margin-top:16px;">
             <div class="form-group" style="flex:1;min-width:120px;">
                 <input type="text" id="newAdminName" placeholder="Admin Name" />
@@ -735,7 +793,6 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
             <button class="btn btn-sm btn-success" id="addAdminBtn" style="align-self:center;">Add</button>
         </div>
         
-        <!-- Reset Admin Password -->
         <div class="card" style="border-color:rgba(46,204,113,0.2);margin-top:16px;">
             <h4 style="color:#f39c12;">🔑 Reset Admin Password</h4>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -760,7 +817,7 @@ body{background:#0a0a0a;color:#e8edf2;min-height:100vh;overflow-x:hidden}
 <div class="bottom-nav" id="bottomNav">
     <button class="nav-item" data-nav="client-dashboard"><span class="icon">🏠</span><span>Home</span></button>
     <button class="nav-item" data-nav="client-products"><span class="icon">🛒</span><span>Invest</span></button>
-    <button class="nav-item" data-nav="client-deposit"><span class="icon">💳</span><span>Deposit</span></button>
+    <button class="nav-item" data-nav="client-recharge"><span class="icon">💳</span><span>Recharge</span></button>
     <button class="nav-item" data-nav="client-withdraw"><span class="icon">🏦</span><span>Withdraw</span></button>
     <button class="nav-item" data-nav="client-messages"><span class="icon">💬</span><span>Support</span></button>
     <button class="nav-item" data-nav="client-referral"><span class="icon">👥</span><span>Refer</span></button>
@@ -824,6 +881,7 @@ let currentAdminName = 'Support Team';
 let cachedClients = [];
 let cachedDeposits = [];
 let cachedWithdrawals = [];
+let cachedRecharges = [];
 let cachedMessages = [];
 let cachedContacts = [];
 let cachedAdmins = [];
@@ -831,6 +889,8 @@ let dataLoaded = false;
 let loadingData = false;
 let activeUsersCount = 673;
 let currentChatClient = null;
+let selectedAmount = 0;
+let selectedMethod = '';
 
 function generateRefCode() {
     return 'CX' + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -856,6 +916,89 @@ function showToast(msg, type) {
 }
 
 // ============================================================
+// RECHARGE FUNCTIONS
+// ============================================================
+function selectPaymentMethod(method) {
+    selectedMethod = method;
+    document.querySelectorAll('.payment-method-btn').forEach(el => {
+        el.classList.toggle('selected', el.dataset.method === method);
+    });
+    updatePaymentInfo();
+}
+
+function selectAmount(amount) {
+    selectedAmount = amount;
+    document.querySelectorAll('.recharge-amount').forEach(el => {
+        el.classList.toggle('selected', parseInt(el.dataset.amount) === amount);
+    });
+    document.getElementById('customAmount').value = '';
+    updatePaymentInfo();
+}
+
+function selectCustomAmount(value) {
+    var num = parseInt(value);
+    if (num && num >= 15000) {
+        selectedAmount = num;
+        document.querySelectorAll('.recharge-amount').forEach(el => {
+            el.classList.remove('selected');
+        });
+        updatePaymentInfo();
+    }
+}
+
+function updatePaymentInfo() {
+    var info = document.getElementById('paymentInfo');
+    var instructions = document.getElementById('instructions');
+    
+    if (selectedMethod && selectedAmount) {
+        info.style.display = 'block';
+        document.getElementById('displayAmount').textContent = 'UGX ' + selectedAmount.toLocaleString();
+        document.getElementById('displayMethod').textContent = selectedMethod + ' Mobile Money';
+        
+        // Find matching contact
+        var contact = cachedContacts.find(c => c.type === selectedMethod);
+        if (contact) {
+            document.getElementById('displayNumber').textContent = contact.number;
+            document.getElementById('displayName').textContent = contact.name;
+            document.getElementById('instructionNumber').textContent = contact.number;
+            document.getElementById('instructionName').textContent = contact.name;
+        }
+        
+        document.getElementById('instructionMethod').textContent = selectedMethod;
+        document.getElementById('instructionAmount').textContent = 'UGX ' + selectedAmount.toLocaleString();
+        
+        // Show Airtel or MTN specific instructions
+        var steps = document.getElementById('instructionSteps');
+        if (selectedMethod === 'Airtel') {
+            steps.innerHTML = `
+                <li>Dial <strong>*185#</strong> on your Airtel line</li>
+                <li>Choose <strong>1 – Send Money</strong></li>
+                <li>Choose <strong>1 – To Airtel Money user</strong></li>
+                <li>Enter the company number: <strong id="instructionNumber">${contact ? contact.number : 'Loading...'}</strong></li>
+                <li>Enter the exact amount: <strong id="instructionAmount">UGX ${selectedAmount.toLocaleString()}</strong></li>
+                <li>Confirm the recipient name: <strong id="instructionName">${contact ? contact.name : 'Loading...'}</strong></li>
+                <li>Enter your Airtel Money PIN to complete</li>
+            `;
+        } else if (selectedMethod === 'MTN') {
+            steps.innerHTML = `
+                <li>Dial <strong>*165#</strong> on your MTN line</li>
+                <li>Choose <strong>3 – Mobile Money</strong></li>
+                <li>Choose <strong>2 – Send Money</strong></li>
+                <li>Enter the company number: <strong id="instructionNumber">${contact ? contact.number : 'Loading...'}</strong></li>
+                <li>Enter the exact amount: <strong id="instructionAmount">UGX ${selectedAmount.toLocaleString()}</strong></li>
+                <li>Confirm the recipient name: <strong id="instructionName">${contact ? contact.name : 'Loading...'}</strong></li>
+                <li>Enter your MTN Mobile Money PIN to complete</li>
+            `;
+        }
+        
+        instructions.style.display = 'block';
+    } else {
+        info.style.display = 'none';
+        instructions.style.display = 'none';
+    }
+}
+
+// ============================================================
 // DATA LOADING
 // ============================================================
 async function loadAllData() {
@@ -874,6 +1017,10 @@ async function loadAllData() {
         const withdrawalsSnap = await db.collection('withdrawals').orderBy('date', 'desc').get();
         cachedWithdrawals = [];
         withdrawalsSnap.forEach(doc => { cachedWithdrawals.push({ id: doc.id, ...doc.data() }); });
+
+        const rechargesSnap = await db.collection('recharges').orderBy('date', 'desc').get();
+        cachedRecharges = [];
+        rechargesSnap.forEach(doc => { cachedRecharges.push({ id: doc.id, ...doc.data() }); });
 
         const messagesSnap = await db.collection('messages').orderBy('date', 'asc').get();
         cachedMessages = [];
@@ -947,6 +1094,21 @@ async function updateWithdrawalInFirebase(id, updates) {
     } catch(e) { return false; }
 }
 
+async function addRechargeToFirebase(data) {
+    try {
+        const docRef = await db.collection('recharges').add(data);
+        cachedRecharges.unshift({ id: docRef.id, ...data });
+        return docRef.id;
+    } catch(e) { return null; }
+}
+
+async function updateRechargeInFirebase(id, updates) {
+    try {
+        await db.collection('recharges').doc(id).update(updates);
+        return true;
+    } catch(e) { return false; }
+}
+
 async function addMessageToFirebase(data) {
     try {
         const docRef = await db.collection('messages').add(data);
@@ -996,7 +1158,7 @@ var pages = {
     'client-messages': document.getElementById('page-client-messages'),
     'client-referral': document.getElementById('page-client-referral'),
     'client-profile': document.getElementById('page-client-profile'),
-    'client-deposit': document.getElementById('page-client-deposit'),
+    'client-recharge': document.getElementById('page-client-recharge'),
     'client-withdraw': document.getElementById('page-client-withdraw'),
     'admin-login': document.getElementById('page-admin-login'),
     'admin-dashboard': document.getElementById('page-admin-dashboard')
@@ -1006,7 +1168,7 @@ function navigate(pageId) {
     if (pageId === 'client-dashboard' || pageId === 'client-products' ||
         pageId === 'client-myitems' || pageId === 'client-messages' ||
         pageId === 'client-referral' || pageId === 'client-profile' ||
-        pageId === 'client-deposit' || pageId === 'client-withdraw') {
+        pageId === 'client-recharge' || pageId === 'client-withdraw') {
         if (!currentClient) { navigate('client-login'); return; }
     }
     if (pageId === 'admin-dashboard' && !isAdmin) { navigate('admin-login'); return; }
@@ -1025,7 +1187,7 @@ function navigate(pageId) {
         if (pageId === 'client-messages') renderMessages();
         if (pageId === 'client-referral') renderReferral();
         if (pageId === 'client-profile') renderProfile();
-        if (pageId === 'client-deposit') renderDeposit();
+        if (pageId === 'client-recharge') renderRecharge();
         if (pageId === 'client-withdraw') renderWithdraw();
         if (pageId === 'admin-dashboard') renderAdminDashboard();
         if (pageId === 'home') updateHomeStats();
@@ -1091,11 +1253,66 @@ document.getElementById('imageInput').addEventListener('change', function(e) {
 });
 
 // ============================================================
+// PROCESS DAILY EARNINGS (FIXED)
+// ============================================================
+async function processDailyEarnings() {
+    var now = new Date();
+    await loadAllData();
+    for (var c = 0; c < cachedClients.length; c++) {
+        var client = cachedClients[c];
+        if (client.products && client.products.length > 0) {
+            var todayEarnings = 0;
+            var updated = false;
+            for (var p = 0; p < client.products.length; p++) {
+                var product = client.products[p];
+                if (product.status === 'active') {
+                    var lastEarning = product.lastEarning || product.purchaseDate;
+                    var lastDate = new Date(lastEarning);
+                    var hoursDiff = (now - lastDate) / (1000 * 60 * 60);
+                    if (hoursDiff >= 24) {
+                        var earning = product.daily;
+                        todayEarnings += earning;
+                        product.balance = (product.balance || 0) + earning;
+                        product.dailyEarned = (product.dailyEarned || 0) + earning;
+                        product.lastEarning = now.toISOString();
+                        updated = true;
+                        if (!client.activities) client.activities = [];
+                        client.activities.push({
+                            action: 'Daily Earnings from ' + product.name,
+                            detail: 'UGX ' + earning.toLocaleString(),
+                            status: 'successful',
+                            date: now.toISOString()
+                        });
+                    }
+                }
+            }
+            if (updated) {
+                client.balance = (client.balance || 0) + todayEarnings;
+                client.totalProfit = (client.totalProfit || 0) + todayEarnings;
+                client.todayEarnings = (client.todayEarnings || 0) + todayEarnings;
+                client.lastEarningDate = now.toISOString();
+                await updateClientInFirebase(client.id, {
+                    balance: client.balance,
+                    totalProfit: client.totalProfit,
+                    todayEarnings: client.todayEarnings,
+                    lastEarningDate: client.lastEarningDate,
+                    products: client.products,
+                    activities: client.activities
+                });
+            }
+        }
+    }
+}
+
+setInterval(processDailyEarnings, 60 * 60 * 1000);
+setTimeout(processDailyEarnings, 5000);
+
+// ============================================================
 // PROCESS REFERRAL BONUS (7-day release)
 // ============================================================
 async function processReferralBonus() {
-    await loadAllData();
     var now = new Date();
+    await loadAllData();
     for (var c = 0; c < cachedClients.length; c++) {
         var client = cachedClients[c];
         if (client.referralBonus && client.referralBonus > 0) {
@@ -1322,6 +1539,81 @@ async function updateHomeStats() {
 }
 
 // ============================================================
+// RECHARGE PAGE
+// ============================================================
+async function renderRecharge() {
+    await loadAllData();
+    // Reset selections
+    selectedMethod = '';
+    selectedAmount = 0;
+    document.querySelectorAll('.payment-method-btn').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.recharge-amount').forEach(el => el.classList.remove('selected'));
+    document.getElementById('customAmount').value = '';
+    document.getElementById('paymentInfo').style.display = 'none';
+    document.getElementById('instructions').style.display = 'none';
+    document.getElementById('rechargeMsg').textContent = '';
+}
+
+document.getElementById('rechargeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var transactionId = document.getElementById('transactionId').value.trim();
+    var msg = document.getElementById('rechargeMsg');
+
+    if (!selectedMethod || !selectedAmount) {
+        msg.textContent = 'Please select a payment method and amount.';
+        msg.style.color = '#ff6b5a';
+        return;
+    }
+    if (selectedAmount < 15000) {
+        msg.textContent = 'Minimum recharge is UGX 15,000.';
+        msg.style.color = '#ff6b5a';
+        return;
+    }
+    if (!transactionId) {
+        msg.textContent = 'Please enter the transaction ID or SMS.';
+        msg.style.color = '#ff6b5a';
+        return;
+    }
+
+    var contact = cachedContacts.find(c => c.type === selectedMethod);
+    if (!contact) {
+        msg.textContent = 'No account found for ' + selectedMethod + '. Contact admin.';
+        msg.style.color = '#ff6b5a';
+        return;
+    }
+
+    await addRechargeToFirebase({
+        clientPhone: currentClient,
+        amount: selectedAmount,
+        method: selectedMethod,
+        accountNumber: contact.number,
+        accountName: contact.name,
+        transactionId: transactionId,
+        status: 'pending',
+        date: new Date().toISOString(),
+        adminNotified: false
+    });
+
+    var client = cachedClients.find(c => c.phone === currentClient);
+    if (client) {
+        if (!client.activities) client.activities = [];
+        client.activities.push({
+            action: 'Recharge Request',
+            detail: 'UGX ' + selectedAmount.toLocaleString() + ' via ' + selectedMethod,
+            status: 'pending',
+            date: new Date().toISOString()
+        });
+        await updateClientInFirebase(client.id, { activities: client.activities });
+    }
+
+    msg.style.color = '#2ecc71';
+    msg.textContent = '✅ Recharge request submitted! Admin will confirm shortly.';
+    document.getElementById('transactionId').value = '';
+    showToast('📨 Recharge request sent!', 'success');
+    setTimeout(function() { navigate('client-dashboard'); }, 2000);
+});
+
+// ============================================================
 // RENDER DASHBOARD
 // ============================================================
 async function renderDashboard() {
@@ -1484,7 +1776,7 @@ async function renderMyItems() {
 }
 
 // ============================================================
-// RENDER MESSAGES (CLIENT)
+// RENDER MESSAGES
 // ============================================================
 async function renderMessages() {
     var container = document.getElementById('messageContainer');
@@ -1561,7 +1853,6 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
     if (e.key === 'Enter') document.getElementById('sendMessageBtn').click();
 });
 
-// Quick messages
 var quickMsgs = document.querySelectorAll('.quick-msg');
 for (var qm = 0; qm < quickMsgs.length; qm++) {
     quickMsgs[qm].addEventListener('click', function() {
@@ -1652,82 +1943,6 @@ async function renderProfile() {
     var pendingBonus = client.referralBonus || 0;
     document.getElementById('profileContent').innerHTML = '<div class="card"><div class="info-row"><span class="label">Name</span><span class="value">' + client.name + '</span></div><div class="info-row"><span class="label">Phone</span><span class="value">' + client.phone + '</span></div><div class="info-row"><span class="label">Tier</span><span class="value"><span class="badge-vip">' + tier + '</span></span></div><div class="info-row"><span class="label">Referral Code</span><span class="value accent">' + (client.refCode || 'N/A') + '</span></div><div class="info-row"><span class="label">Balance</span><span class="value accent">UGX ' + (client.balance || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Invested</span><span class="value">UGX ' + (client.totalInvested || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Profit</span><span class="value accent">UGX ' + (client.totalProfit || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Total Withdrawn</span><span class="value">UGX ' + (client.totalWithdrawn || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Today\'s Earnings</span><span class="value accent">UGX ' + (client.todayEarnings || 0).toLocaleString() + '</span></div><div class="info-row"><span class="label">Pending Referral Bonus</span><span class="value gold">UGX ' + pendingBonus.toLocaleString() + '</span></div><div class="info-row"><span class="label">Products Owned</span><span class="value">' + (client.products || []).length + '</span></div><div class="info-row"><span class="label">Referrals</span><span class="value">' + (client.referrals || []).length + '</span></div><div class="info-row"><span class="label">Total Referral Bonus</span><span class="value accent">UGX ' + ((client.referralBonusReleased || 0) + pendingBonus).toLocaleString() + '</span></div><div class="info-row"><span class="label">Has Deposited</span><span class="value">' + (client.hasDeposited ? '✅ Yes' : '❌ No') + '</span></div><div class="info-row"><span class="label">Has Invested</span><span class="value">' + (client.hasInvested ? '✅ Yes' : '❌ No') + '</span></div></div>';
 }
-
-// ============================================================
-// RENDER DEPOSIT
-// ============================================================
-async function renderDeposit() {
-    await loadAllData();
-    if (cachedContacts.length === 0) {
-        document.getElementById('currentAccountNumber').textContent = 'No accounts available';
-        document.getElementById('currentAccountName').textContent = 'Contact admin';
-        document.getElementById('currentAccountProvider').textContent = '';
-        return;
-    }
-    var randomIndex = Math.floor(Math.random() * cachedContacts.length);
-    var account = cachedContacts[randomIndex];
-    document.getElementById('currentAccountNumber').textContent = account.number;
-    document.getElementById('currentAccountName').textContent = account.name;
-    document.getElementById('currentAccountProvider').textContent = account.type;
-    var client = cachedClients.find(c => c.phone === currentClient);
-    if (client) {
-        document.getElementById('depositSender').value = client.phone;
-    }
-}
-
-document.getElementById('refreshAccountBtn').addEventListener('click', function() {
-    renderDeposit();
-    showToast('🔄 New account number generated!', 'info');
-});
-
-document.getElementById('depositForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var amount = parseInt(document.getElementById('depositAmount').value);
-    var sender = document.getElementById('depositSender').value.trim();
-    var name = document.getElementById('depositName').value.trim();
-    var msg = document.getElementById('depositMsg');
-
-    await loadAllData();
-    var client = cachedClients.find(c => c.phone === currentClient);
-    if (!client) { msg.textContent = 'Please login first.'; return; }
-
-    if (!amount || amount < 15000) { msg.textContent = 'Minimum deposit is UGX 15,000'; return; }
-    if (!sender || !name) { msg.textContent = 'Please fill all fields.'; return; }
-    if (sender.length !== 10 || !/^[0-9]{10}$/.test(sender)) {
-        msg.textContent = 'Please enter a valid 10-digit phone number.';
-        return;
-    }
-    if (sender !== client.phone) {
-        msg.textContent = '❌ You must deposit using your registered phone number!';
-        return;
-    }
-
-    await addDepositToFirebase({
-        clientPhone: currentClient,
-        amount: amount,
-        sender: sender,
-        name: name,
-        status: 'pending',
-        date: new Date().toISOString(),
-        adminNotified: false
-    });
-
-    if (!client.activities) client.activities = [];
-    client.activities.push({
-        action: 'Deposit Request',
-        detail: 'UGX ' + amount.toLocaleString(),
-        status: 'pending',
-        date: new Date().toISOString()
-    });
-    await updateClientInFirebase(client.id, { activities: client.activities });
-
-    msg.style.color = '#2ecc71';
-    msg.textContent = '✅ Deposit request submitted! Admin will confirm shortly.';
-    document.getElementById('depositAmount').value = '';
-    document.getElementById('depositName').value = '';
-    showToast('📨 Deposit request sent!', 'success');
-    setTimeout(renderDeposit, 500);
-});
 
 // ============================================================
 // RENDER WITHDRAW
@@ -1877,6 +2092,7 @@ async function renderAdminDashboard() {
     renderAdminContacts();
     renderAdminDeposits();
     renderAdminWithdrawals();
+    renderAdminRecharges();
     renderAdminSupport();
     renderAdminList();
 
@@ -2059,131 +2275,6 @@ document.getElementById('saveWhatsappBtn').addEventListener('click', async funct
 });
 
 // ============================================================
-// ADMIN SUPPORT - WITH CHAT VIEW
-// ============================================================
-async function renderAdminSupport() {
-    var container = document.getElementById('adminSupportList');
-    await loadAllData();
-    var clientsWithMessages = [];
-    for (var m = 0; m < cachedMessages.length; m++) {
-        if (clientsWithMessages.indexOf(cachedMessages[m].clientPhone) === -1) {
-            clientsWithMessages.push(cachedMessages[m].clientPhone);
-        }
-    }
-
-    if (clientsWithMessages.length === 0) {
-        container.innerHTML = '<div class="text-muted">No support messages yet.</div>';
-        return;
-    }
-
-    var html = '';
-    for (var c = 0; c < clientsWithMessages.length; c++) {
-        var phone = clientsWithMessages[c];
-        var client = cachedClients.find(function(cl) { return cl.phone === phone; });
-        var clientMessages = cachedMessages.filter(function(m) { return m.clientPhone === phone; });
-        var lastMsg = clientMessages[clientMessages.length - 1];
-        var unread = 0;
-        for (var um = 0; um < clientMessages.length; um++) {
-            if (clientMessages[um].sender === 'client' && !clientMessages[um].read) unread++;
-        }
-        html += '<div class="list-item" data-phone="' + phone + '" style="cursor:pointer;" onclick="openChatView(\'' + phone + '\')"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + (unread > 0 ? ' <span class="badge">' + unread + '</span>' : '') + '</span><span class="detail">' + phone + ' · ' + clientMessages.length + ' messages</span><span class="detail">Last: ' + new Date(lastMsg.date).toLocaleString() + '</span><span class="detail">' + lastMsg.text.substring(0, 50) + (lastMsg.text.length > 50 ? '...' : '') + '</span></div><button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openChatView(\'' + phone + '\')">Open Chat</button></div>';
-    }
-    container.innerHTML = html;
-}
-
-// Open chat view for a specific client
-window.openChatView = function(phone) {
-    currentChatClient = phone;
-    var client = cachedClients.find(function(c) { return c.phone === phone; });
-    document.getElementById('adminChatClientName').textContent = 'Chat with ' + (client ? client.name : phone);
-    document.getElementById('adminChatView').style.display = 'block';
-    document.getElementById('adminSupportList').style.display = 'none';
-    renderChatMessages(phone);
-    markMessagesAsRead(phone);
-}
-
-// Render chat messages
-async function renderChatMessages(phone) {
-    var container = document.getElementById('adminChatMessages');
-    await loadAllData();
-    var messages = cachedMessages.filter(function(m) { return m.clientPhone === phone; });
-    
-    if (messages.length === 0) {
-        container.innerHTML = '<div class="text-muted">No messages yet</div>';
-        return;
-    }
-    
-    var html = '';
-    for (var m = 0; m < messages.length; m++) {
-        var msg = messages[m];
-        var isClient = msg.sender === 'client';
-        var msgClass = isClient ? 'client' : 'admin';
-        var senderName = isClient ? 'Client' : (msg.adminName || 'Admin');
-        var textContent = msg.text;
-        var imageHtml = '';
-        if (textContent.startsWith('📷 Image: ')) {
-            var imageUrl = textContent.replace('📷 Image: ', '');
-            if (imageUrl.startsWith('data:image')) {
-                imageHtml = '<div class="image-upload"><img src="' + imageUrl + '" alt="Uploaded image" onclick="window.open(this.src)" /></div>';
-                textContent = '📷 Image';
-            }
-        }
-        html += '<div class="message-bubble ' + msgClass + '"><div class="sender">' + senderName + '</div><div class="text">' + textContent + '</div>' + imageHtml + '<div class="time">' + new Date(msg.date).toLocaleString() + '</div></div>';
-    }
-    container.innerHTML = html;
-    container.scrollTop = container.scrollHeight;
-}
-
-// Mark messages as read
-async function markMessagesAsRead(phone) {
-    var unreadMessages = cachedMessages.filter(function(m) { return m.clientPhone === phone && m.sender === 'client' && !m.read; });
-    for (var i = 0; i < unreadMessages.length; i++) {
-        var msg = unreadMessages[i];
-        if (msg.id) {
-            try {
-                await db.collection('messages').doc(msg.id).update({ read: true });
-                msg.read = true;
-            } catch(e) {}
-        }
-    }
-}
-
-// Close chat view
-document.getElementById('closeChatViewBtn').addEventListener('click', function() {
-    document.getElementById('adminChatView').style.display = 'none';
-    document.getElementById('adminSupportList').style.display = 'block';
-    currentChatClient = null;
-});
-
-// Send reply from chat view
-document.getElementById('adminChatSendBtn').addEventListener('click', async function() {
-    var input = document.getElementById('adminChatReplyInput');
-    var message = input.value.trim();
-    if (!message || !currentChatClient) return;
-    
-    await addMessageToFirebase({
-        clientPhone: currentChatClient,
-        sender: 'support',
-        adminName: currentAdminName || 'Support Team',
-        text: message,
-        date: new Date().toISOString(),
-        read: false
-    });
-    
-    input.value = '';
-    renderChatMessages(currentChatClient);
-    renderAdminSupport();
-    showToast('✅ Reply sent!', 'success');
-});
-
-// Enter key for chat reply
-document.getElementById('adminChatReplyInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        document.getElementById('adminChatSendBtn').click();
-    }
-});
-
-// ============================================================
 // ADMIN DEPOSITS
 // ============================================================
 async function renderAdminDeposits() {
@@ -2273,7 +2364,7 @@ async function renderAdminDeposits() {
 }
 
 // ============================================================
-// ADMIN WITHDRAWALS
+// ADMIN WITHDRAWALS (FIXED - shows successful when confirmed)
 // ============================================================
 async function renderAdminWithdrawals() {
     var container = document.getElementById('adminWithdrawalsList');
@@ -2309,9 +2400,28 @@ async function renderAdminWithdrawals() {
 
         confirmBtn.addEventListener('click', function(id) {
             return async function() {
+                // Update withdrawal status to successful
                 await updateWithdrawalInFirebase(id, { status: 'successful', adminNotified: true });
+                
+                // Update client activity
+                var withdrawal = cachedWithdrawals.find(function(d) { return d.id === id; });
+                if (withdrawal) {
+                    var client = cachedClients.find(function(c) { return c.phone === withdrawal.clientPhone; });
+                    if (client) {
+                        if (!client.activities) client.activities = [];
+                        client.activities.push({
+                            action: 'Withdrawal Successful',
+                            detail: 'UGX ' + withdrawal.amount.toLocaleString() + ' to ' + withdrawal.number,
+                            status: 'successful',
+                            date: new Date().toISOString()
+                        });
+                        await updateClientInFirebase(client.id, { activities: client.activities });
+                    }
+                }
+                
+                await loadAllData();
                 renderAdminDashboard();
-                showToast('✅ Withdrawal confirmed!', 'success');
+                showToast('✅ Withdrawal confirmed and marked as successful!', 'success');
             };
         }(id));
 
@@ -2337,7 +2447,200 @@ async function renderAdminWithdrawals() {
 }
 
 // ============================================================
-// ADMIN MANAGEMENT - WITH PASSWORD CHANGE
+// ADMIN RECHARGES
+// ============================================================
+async function renderAdminRecharges() {
+    var container = document.getElementById('adminRechargeList');
+    await loadAllData();
+    var pending = cachedRecharges.filter(function(d) { return d.status === 'pending' || d.status === 'processing'; });
+    if (pending.length === 0) {
+        container.innerHTML = '<div class="text-muted">No pending recharges.</div>';
+        return;
+    }
+    var html = '';
+    for (var d = 0; d < pending.length; d++) {
+        var recharge = pending[d];
+        var client = cachedClients.find(function(c) { return c.phone === recharge.clientPhone; });
+        html += '<div class="list-item" data-id="' + recharge.id + '"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + '</span><span class="detail">💰 UGX ' + recharge.amount.toLocaleString() + ' via ' + recharge.method + '</span><span class="detail">📱 ' + recharge.transactionId + ' · ' + new Date(recharge.date).toLocaleString() + '</span><span class="detail">Status: <span class="status-badge ' + recharge.status + '">' + recharge.status + '</span></span></div><div class="actions"><button class="btn btn-sm btn-warning processingRechargeBtn">⏳ Processing</button><button class="btn btn-sm btn-success confirmRechargeBtn">✅ Confirm</button><button class="btn btn-sm btn-danger rejectRechargeBtn">❌ Reject</button></div></div>';
+    }
+    container.innerHTML = html;
+
+    var items = container.querySelectorAll('.list-item');
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var id = item.dataset.id;
+        var processingBtn = item.querySelector('.processingRechargeBtn');
+        var confirmBtn = item.querySelector('.confirmRechargeBtn');
+        var rejectBtn = item.querySelector('.rejectRechargeBtn');
+
+        processingBtn.addEventListener('click', function(id) {
+            return async function() {
+                await updateRechargeInFirebase(id, { status: 'processing' });
+                renderAdminDashboard();
+                showToast('Recharge status updated to Processing', 'info');
+            };
+        }(id));
+
+        confirmBtn.addEventListener('click', function(id) {
+            return async function() {
+                var recharge = cachedRecharges.find(function(d) { return d.id === id; });
+                if (!recharge) return;
+                await loadAllData();
+                var client = cachedClients.find(function(c) { return c.phone === recharge.clientPhone; });
+                if (client) {
+                    var newBal = (client.balance || 0) + recharge.amount;
+                    if (!client.activities) client.activities = [];
+                    client.activities.push({
+                        action: 'Recharge Confirmed',
+                        detail: 'UGX ' + recharge.amount.toLocaleString() + ' via ' + recharge.method,
+                        status: 'successful',
+                        date: new Date().toISOString()
+                    });
+                    await updateClientInFirebase(client.id, {
+                        balance: newBal,
+                        hasDeposited: true,
+                        activities: client.activities
+                    });
+                }
+                await updateRechargeInFirebase(id, { status: 'successful', adminNotified: true });
+                renderAdminDashboard();
+                showToast('✅ Recharge of UGX ' + recharge.amount.toLocaleString() + ' confirmed!', 'success');
+            };
+        }(id));
+
+        rejectBtn.addEventListener('click', function(id) {
+            return async function() {
+                if (confirm('Reject this recharge?')) {
+                    await updateRechargeInFirebase(id, { status: 'rejected' });
+                    renderAdminDashboard();
+                    showToast('Recharge rejected.', 'error');
+                }
+            };
+        }(id));
+    }
+}
+
+// ============================================================
+// ADMIN SUPPORT
+// ============================================================
+async function renderAdminSupport() {
+    var container = document.getElementById('adminSupportList');
+    await loadAllData();
+    var clientsWithMessages = [];
+    for (var m = 0; m < cachedMessages.length; m++) {
+        if (clientsWithMessages.indexOf(cachedMessages[m].clientPhone) === -1) {
+            clientsWithMessages.push(cachedMessages[m].clientPhone);
+        }
+    }
+
+    if (clientsWithMessages.length === 0) {
+        container.innerHTML = '<div class="text-muted">No support messages yet.</div>';
+        return;
+    }
+
+    var html = '';
+    for (var c = 0; c < clientsWithMessages.length; c++) {
+        var phone = clientsWithMessages[c];
+        var client = cachedClients.find(function(cl) { return cl.phone === phone; });
+        var clientMessages = cachedMessages.filter(function(m) { return m.clientPhone === phone; });
+        var lastMsg = clientMessages[clientMessages.length - 1];
+        var unread = 0;
+        for (var um = 0; um < clientMessages.length; um++) {
+            if (clientMessages[um].sender === 'client' && !clientMessages[um].read) unread++;
+        }
+        html += '<div class="list-item" data-phone="' + phone + '" style="cursor:pointer;" onclick="openChatView(\'' + phone + '\')"><div class="info"><span class="name">' + (client ? client.name : 'Unknown') + (unread > 0 ? ' <span class="badge">' + unread + '</span>' : '') + '</span><span class="detail">' + phone + ' · ' + clientMessages.length + ' messages</span><span class="detail">Last: ' + new Date(lastMsg.date).toLocaleString() + '</span><span class="detail">' + lastMsg.text.substring(0, 50) + (lastMsg.text.length > 50 ? '...' : '') + '</span></div><button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openChatView(\'' + phone + '\')">Open Chat</button></div>';
+    }
+    container.innerHTML = html;
+}
+
+window.openChatView = function(phone) {
+    currentChatClient = phone;
+    var client = cachedClients.find(function(c) { return c.phone === phone; });
+    document.getElementById('adminChatClientName').textContent = 'Chat with ' + (client ? client.name : phone);
+    document.getElementById('adminChatView').style.display = 'block';
+    document.getElementById('adminSupportList').style.display = 'none';
+    renderChatMessages(phone);
+    markMessagesAsRead(phone);
+}
+
+async function renderChatMessages(phone) {
+    var container = document.getElementById('adminChatMessages');
+    await loadAllData();
+    var messages = cachedMessages.filter(function(m) { return m.clientPhone === phone; });
+    
+    if (messages.length === 0) {
+        container.innerHTML = '<div class="text-muted">No messages yet</div>';
+        return;
+    }
+    
+    var html = '';
+    for (var m = 0; m < messages.length; m++) {
+        var msg = messages[m];
+        var isClient = msg.sender === 'client';
+        var msgClass = isClient ? 'client' : 'admin';
+        var senderName = isClient ? 'Client' : (msg.adminName || 'Admin');
+        var textContent = msg.text;
+        var imageHtml = '';
+        if (textContent.startsWith('📷 Image: ')) {
+            var imageUrl = textContent.replace('📷 Image: ', '');
+            if (imageUrl.startsWith('data:image')) {
+                imageHtml = '<div class="image-upload"><img src="' + imageUrl + '" alt="Uploaded image" onclick="window.open(this.src)" /></div>';
+                textContent = '📷 Image';
+            }
+        }
+        html += '<div class="message-bubble ' + msgClass + '"><div class="sender">' + senderName + '</div><div class="text">' + textContent + '</div>' + imageHtml + '<div class="time">' + new Date(msg.date).toLocaleString() + '</div></div>';
+    }
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+}
+
+async function markMessagesAsRead(phone) {
+    var unreadMessages = cachedMessages.filter(function(m) { return m.clientPhone === phone && m.sender === 'client' && !m.read; });
+    for (var i = 0; i < unreadMessages.length; i++) {
+        var msg = unreadMessages[i];
+        if (msg.id) {
+            try {
+                await db.collection('messages').doc(msg.id).update({ read: true });
+                msg.read = true;
+            } catch(e) {}
+        }
+    }
+}
+
+document.getElementById('closeChatViewBtn').addEventListener('click', function() {
+    document.getElementById('adminChatView').style.display = 'none';
+    document.getElementById('adminSupportList').style.display = 'block';
+    currentChatClient = null;
+});
+
+document.getElementById('adminChatSendBtn').addEventListener('click', async function() {
+    var input = document.getElementById('adminChatReplyInput');
+    var message = input.value.trim();
+    if (!message || !currentChatClient) return;
+    
+    await addMessageToFirebase({
+        clientPhone: currentChatClient,
+        sender: 'support',
+        adminName: currentAdminName || 'Support Team',
+        text: message,
+        date: new Date().toISOString(),
+        read: false
+    });
+    
+    input.value = '';
+    renderChatMessages(currentChatClient);
+    renderAdminSupport();
+    showToast('✅ Reply sent!', 'success');
+});
+
+document.getElementById('adminChatReplyInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('adminChatSendBtn').click();
+    }
+});
+
+// ============================================================
+// ADMIN MANAGEMENT
 // ============================================================
 async function renderAdminList() {
     var container = document.getElementById('adminList');
@@ -2365,7 +2668,6 @@ async function renderAdminList() {
         });
     }
     
-    // Populate reset admin dropdown
     populateResetAdminDropdown();
 }
 
@@ -2391,7 +2693,6 @@ document.getElementById('addAdminBtn').addEventListener('click', async function(
     showToast('✅ Admin added!', 'success');
 });
 
-// Change own password
 document.getElementById('changePasswordBtn').addEventListener('click', async function() {
     var current = document.getElementById('currentPassword').value.trim();
     var newPass = document.getElementById('newPassword').value.trim();
@@ -2436,7 +2737,6 @@ document.getElementById('changePasswordBtn').addEventListener('click', async fun
     }
 });
 
-// Reset admin password (Super Admin only)
 document.getElementById('resetAdminBtn').addEventListener('click', async function() {
     var adminId = document.getElementById('resetAdminSelect').value;
     var newPass = document.getElementById('resetAdminNewPass').value.trim();
@@ -2467,7 +2767,6 @@ document.getElementById('resetAdminBtn').addEventListener('click', async functio
     }
 });
 
-// Populate reset admin dropdown
 async function populateResetAdminDropdown() {
     await loadAllData();
     var select = document.getElementById('resetAdminSelect');
@@ -2504,6 +2803,7 @@ for (var t = 0; t < adminTabs.length; t++) {
         if (target) target.style.display = 'block';
         if (tabName === 'support') renderAdminSupport();
         if (tabName === 'admins') renderAdminList();
+        if (tabName === 'recharge') renderAdminRecharges();
     });
 }
 
@@ -2572,6 +2872,9 @@ console.log('🚀 CASH X FULLY WORKING!');
 console.log('👤 Super Admin: admin / admin123');
 console.log('💬 Admin can see all messages and reply');
 console.log('📷 Image upload working');
+console.log('💳 Recharge system with MTN/Airtel');
+console.log('📈 Daily earnings auto-process every 24 hours');
+console.log('✅ Withdrawals show successful when confirmed');
 </script>
 </body>
 </html>
